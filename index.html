@@ -3156,5 +3156,11 @@
     const app = new PresyEngine();
     document.addEventListener('DOMContentLoaded', function () { app.init(); });
   </script>
+
+  <!-- Vercel Web Analytics (equivalente statico di @vercel/analytics — no Next.js) -->
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
