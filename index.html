@@ -33,29 +33,41 @@
     }
 
     html, body {
+      background: #0d0e12 !important;
+      background-color: #0d0e12;
+      margin: 0;
+      padding: 0;
+      width: 100%;
       height: 100%;
-      height: 100dvh;
       overflow: hidden;
       overscroll-behavior: none;
-      background: var(--bg-gradient);
       color: var(--text-main);
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
       display: flex;
       justify-content: center;
+      min-height: 100%;
+      min-height: 100dvh;
     }
 
     /* ─── App Shell: fixed header + scrollable main + fixed tabs ─── */
     .app-shell {
       width: 100%;
       max-width: 480px;
+      height: 100%;
       height: 100dvh;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
       display: flex;
       flex-direction: column;
       position: relative;
       overflow: hidden;
-      padding-top: env(safe-area-inset-top);
+      background: var(--bg-gradient);
+      background-color: #0d0e12;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .app-header {
@@ -110,7 +122,7 @@
       border-top: 1px solid var(--glass-border);
       display: flex;
       justify-content: space-around;
-      padding: 10px 6px calc(10px + env(safe-area-inset-bottom));
+      padding: 10px 6px;
       z-index: 10;
     }
 
@@ -290,15 +302,38 @@
       line-height: 1.45;
       margin: 0;
     }
-    .filter-time-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+
+    .time-range-row {
+      display: flex;
+      flex-direction: row;
       gap: 12px;
       width: 100%;
+      align-items: center;
     }
-    .filter-time-row .input-group { margin-bottom: 0; }
 
-    input[type="date"] {
+    .time-range-row .input-group {
+      flex: 1;
+      min-width: 0;
+      margin-bottom: 0;
+    }
+
+    .time-range-row .input-group label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .time-range-row input[type="time"] {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      padding: 10px 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+
+    input[type="date"],
+    input[type="time"] {
       color-scheme: dark;
       min-height: 46px;
     }
@@ -584,7 +619,7 @@
             </div>
             <div class="filter-time-block">
               <p class="filter-time-label">Inserisci orario di inizio nel range qua sotto</p>
-              <div class="filter-time-row">
+              <div class="time-range-row">
                 <div class="input-group">
                   <label>Dalle ore</label>
                   <input type="time" id="filterTimeFrom" onchange="app.applyFilters()">
@@ -710,10 +745,6 @@
             <label class="photo-edit" for="profilePhotoInput">📷</label>
             <input type="file" id="profilePhotoInput" accept="image/*" hidden onchange="app.handleProfilePhoto(event)">
           </div>
-          <div class="input-group" style="margin-bottom:8px;">
-            <label>Nome Visualizzato</label>
-            <input type="text" id="profDisplayName" placeholder="Il tuo nome" oninput="app.saveDisplayName()">
-          </div>
           <h2 id="profUsername">Guest Mode</h2>
           <p class="subtitle" id="profMail" style="margin-bottom:0;">Nessun account collegato</p>
           <div class="row" style="justify-content:center;gap:24px;margin:14px 0;">
@@ -765,7 +796,7 @@
 
         <div class="input-group" id="authUsernameGroup">
           <label>Username</label>
-          <input type="text" id="authUsername" placeholder="es. andrea_adf">
+          <input type="text" id="authUsername" placeholder="es. Mario_Rossi">
         </div>
         <div class="input-group">
           <label>Email</label>
@@ -935,39 +966,18 @@
           { id: 'snack', name: 'Snack', price: 2.5 }
         ];
 
-        this.pendingCatalogItems = [
-          { id: 'pc1', name: 'Prosecco DOC', price: 9, submittedBy: 'vale_riviera' }
-        ];
+        this.pendingCatalogItems = [];
 
-        this.users = [
-          { id: 101, username: 'vale_riviera', email: 'vale@presy.io', displayName: 'Valentina', avatar: null, followers: 142, participated: 12, followedByMe: false, followsMe: true },
-          { id: 102, username: 'luca_to99', email: 'luca@torino.it', displayName: 'Luca', avatar: null, followers: 89, participated: 8, followedByMe: true, followsMe: true },
-          { id: 103, username: 'matteo_imperia', email: 'matteo@adf.com', displayName: 'Matteo', avatar: null, followers: 231, participated: 24, followedByMe: false, followsMe: false }
-        ];
+        this.users = [];
+        this.myFollowers = [];
+        this.parties = [];
+        this.messages = [];
 
-        this.myFollowers = [
-          { userId: 101, followedAt: Date.now() - 3600000, isNew: true },
-          { userId: 102, followedAt: Date.now() - 86400000 * 2, isNew: false },
-          { userId: 103, followedAt: Date.now() - 86400000 * 5, isNew: false }
-        ];
-
-        this.parties = [
-          this._makeParty(1, 'Warmup Aegua Deluxe', 'Imperia', 'IM', this._today, '21:00', 'Molo Imperia', 'Aegua', 'https://dice.fm', 'PUBLIC', 'vale_riviera', [101, 102]),
-          this._makeParty(2, 'Pre-Serata Rigido Timone', 'Diano Marina', 'IM', this._today, '20:30', 'Piazza Diano Marina', 'Timone', 'https://ticketsms.it', 'PUBLIC', 'matteo_imperia', [103]),
-          this._makeParty(3, 'Delirio Pre-Palatenda', 'Torino', 'TO', this._today, '22:00', 'Parco Valentino', 'Palatenda', '', 'PUBLIC', 'luca_to99', [102, 101])
-        ];
-
-        this.messages = [
-          { roomId: 'party_1', sender: 'vale_riviera', text: 'Portate il ghiaccio raga!', media: null, ts: Date.now() - 600000 },
-          { roomId: 'party_1', sender: 'luca_to99', text: 'Io ho preso 2 bottiglie di Gin.', media: null, ts: Date.now() - 300000 },
-          { roomId: 'dm_101', sender: 'vale_riviera', text: 'Ehi, ci si vede all\'Aegua stasera?', media: null, ts: Date.now() - 120000, isRequest: true }
-        ];
-
-        this.dmRequests = [{ roomId: 'dm_101', userId: 101, username: 'vale_riviera' }];
-        this.acceptedDMs = ['dm_102'];
+        this.dmRequests = [];
+        this.acceptedDMs = [];
 
         this.currentUser = null;
-        this.currentChatRoom = 'party_1';
+        this.currentChatRoom = '';
         this.chatSection = 'chat';
         this.showPastEventsOnFeed = true;
         this.searchHistory = JSON.parse(localStorage.getItem('presy_search_history') || '[]');
@@ -975,7 +985,7 @@
         this.authCallback = null;
         this.editingPartyId = null;
         this.chatSearchQuery = '';
-        this.initiatedDMs = ['dm_102'];
+        this.initiatedDMs = [];
         this.roomShoppingCache = {};
         this.shoppingChannel = null;
         this.adminPendingItems = [];
@@ -1002,10 +1012,6 @@
         this.renderSocial();
         this.renderSearchHistory();
         this.renderChat();
-        if (!this.supabaseReady) {
-          this.restoreMockSession();
-          this.updateAuthUI();
-        }
       }
 
       initSupabaseAuth() {
