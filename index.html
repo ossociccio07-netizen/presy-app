@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0d0e12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Presy — MVP Nightlife Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0d0e12 0%, #151821 100%);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --neon-purple: #9d4edd;
+      --neon-green: #39ff14;
+      --neon-pink: #ff007f;
+      --neon-blue: #00f0ff;
+      --text-main: #f0f2f5;
+      --text-muted: #94a3b8;
+      --header-h: 56px;
+      --tabs-h: 72px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ─── App Shell: fixed header + scrollable main + fixed tabs ─── */
+    .app-shell {
+      width: 100%;
+      max-width: 480px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      padding-top: env(safe-area-inset-top);
+    }
+
+    .app-header {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      min-height: var(--header-h);
+      border-bottom: 1px solid var(--glass-border);
+      background: rgba(13, 14, 18, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      z-index: 10;
+    }
+
+    .logo {
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(to right, var(--neon-purple), var(--neon-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -1px;
+    }
+
+    .header-login {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--neon-blue);
+    }
+
+    .app-main {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 16px 20px;
+    }
+
+    .app-tabs {
+      flex-shrink: 0;
+      background: rgba(13, 14, 18, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 6px calc(10px + env(safe-area-inset-bottom));
+      z-index: 10;
+    }
+
+    .ambient {
+      position: fixed;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.14;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .ambient--purple { top: -40px; left: -40px; background: var(--neon-purple); }
+    .ambient--pink { bottom: 80px; right: -40px; background: var(--neon-pink); }
+
+    .tabs__btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 500;
+      min-width: 52px;
+      min-height: 48px;
+      justify-content: center;
+      transition: color 0.2s;
+    }
+    .tabs__btn--active { color: var(--neon-purple); }
+    .tabs__icon { font-size: 19px; }
+
+    .app-view { display: none; flex-direction: column; gap: 14px; }
+    .app-view.active { display: flex; }
+
+    .card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 18px;
+    }
+    h2 { font-size: 21px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+    h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    p.subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; line-height: 1.45; }
+
+    .input-group { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+    .input-group label { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    input, select, textarea {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+      padding: 12px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--neon-purple);
+      box-shadow: 0 0 10px rgba(157, 78, 221, 0.2);
+    }
+    .row { display: flex; gap: 10px; }
+
+    .btn {
+      background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+      color: #fff;
+      border: none;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+      width: 100%;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:active { opacity: 0.85; transform: scale(0.98); }
+    .btn--secondary { background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #fff; }
+    .btn--sm { padding: 8px 12px; font-size: 12px; border-radius: 8px; width: auto; }
+    .btn--green { background: linear-gradient(135deg, #059669, var(--neon-green)); color: #0d0e12; }
+    .btn--danger { background: rgba(255,71,87,0.15); border: 1px solid rgba(255,71,87,0.4); color: #ff4757; }
+    .btn--edit { background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3); color: var(--neon-blue); }
+
+    .party-card--removing {
+      animation: cardRemove 0.4s ease forwards;
+      pointer-events: none;
+    }
+    @keyframes cardRemove {
+      to { opacity: 0; transform: scale(0.92) translateX(40px); max-height: 0; padding: 0; margin: 0; overflow: hidden; }
+    }
+
+    .participant-preview { margin: 10px 0 6px; }
+    .participant-preview__label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .participant-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .participant-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      padding: 4px 10px 4px 4px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: border-color 0.2s, transform 0.15s;
+    }
+    .participant-chip:active { transform: scale(0.96); border-color: var(--neon-purple); }
+    .participant-chip .avatar { width: 22px; height: 22px; font-size: 10px; }
+    .participant-chip--host { border-color: rgba(157,78,221,0.35); }
+
+    .party-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .party-actions-row { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; margin-top: 8px; }
+
+    .chat-search-wrap { margin-bottom: 12px; }
+    .chat-search-results { margin-bottom: 10px; }
+    .chat-search-result {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.2);
+      border: 1px solid var(--glass-border); margin-bottom: 6px; cursor: pointer;
+    }
+    .chat-search-result:active { border-color: var(--neon-purple); }
+    .chat-search-result--new { border-style: dashed; border-color: rgba(157,78,221,0.4); }
+
+    .msg__media { cursor: pointer; }
+    .msg__media img, .msg__media video { transition: opacity 0.2s; }
+    .msg__media:active img, .msg__media:active video { opacity: 0.85; }
+
+    .lightbox {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center;
+      padding: 20px; animation: fadeIn 0.25s ease;
+    }
+    .lightbox.open { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .lightbox__close {
+      position: absolute; top: calc(env(safe-area-inset-top) + 16px); right: 20px;
+      width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08); color: #fff; font-size: 22px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .lightbox__content { max-width: 100%; max-height: 85dvh; border-radius: 12px; overflow: hidden; }
+    .lightbox__content img, .lightbox__content video { max-width: 100%; max-height: 85dvh; display: block; border-radius: 12px; }
+
+    .room-selector .tabs__btn--active-room,
+    .room-selector button.room-btn--active {
+      box-shadow: 0 0 16px rgba(157,78,221,0.35);
+      border-color: var(--neon-purple) !important;
+    }
+
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: rgba(0,0,0,0.15);
+      padding: 14px;
+      border-radius: 14px;
+    }
+    .filter-grid .input-group--full { grid-column: 1 / -1; }
+    .filter-grid .input-group { margin-bottom: 0; min-width: 0; }
+
+    .filter-time-block {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      margin-top: 2px;
+      padding-top: 12px;
+    }
+    .filter-time-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      line-height: 1.45;
+      margin: 0;
+    }
+    .filter-time-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+    .filter-time-row .input-group { margin-bottom: 0; }
+
+    input[type="date"] {
+      color-scheme: dark;
+      min-height: 46px;
+    }
+
+    .location-link {
+      cursor: pointer;
+      color: var(--neon-blue);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: opacity 0.2s;
+    }
+    .location-link:active { opacity: 0.75; }
+
+    .party-card { border-left: 4px solid var(--neon-purple); }
+    .party-card__title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+    .party-card__details { font-size: 13px; margin-bottom: 10px; }
+    .pill { background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; color: var(--neon-blue); }
+    .pill--pink { color: var(--neon-pink); }
+    .pill--proximity { color: var(--neon-green); border: 1px solid rgba(57,255,20,0.25); }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 32px 20px;
+      border-radius: 20px;
+      border: 1px dashed rgba(157,78,221,0.3);
+      background: rgba(157,78,221,0.05);
+    }
+    .empty-state p { font-size: 14px; line-height: 1.6; color: var(--text-muted); }
+    .empty-state .link-action {
+      color: var(--neon-purple);
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .empty-state .link-action--wa { color: var(--neon-green); }
+
+    /* Social / Amici */
+    .user-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 15px; overflow: hidden;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .search-history { margin-top: 12px; }
+    .search-history__title { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .history-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+      padding: 6px 10px; border-radius: 20px; font-size: 12px; margin: 0 6px 6px 0;
+    }
+    .history-chip__x {
+      width: 18px; height: 18px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.1); color: var(--text-muted);
+      cursor: pointer; font-size: 11px; line-height: 1;
+    }
+
+    .toast {
+      position: fixed; top: calc(env(safe-area-inset-top) + 70px); left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(13,14,18,0.95); border: 1px solid var(--neon-green);
+      color: var(--neon-green); padding: 12px 20px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; z-index: 2000; opacity: 0;
+      pointer-events: none; transition: all 0.3s ease; max-width: 90%;
+      text-align: center; box-shadow: 0 0 24px rgba(57,255,20,0.2);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Chat */
+    .chat-subtabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .chat-subtabs button {
+      flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.2); color: var(--text-muted); font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .chat-subtabs button.active { background: rgba(157,78,221,0.2); color: var(--neon-purple); border-color: rgba(157,78,221,0.4); }
+    .chat-subtabs .badge-count {
+      background: var(--neon-pink); color: #fff; font-size: 10px;
+      padding: 2px 6px; border-radius: 10px; margin-left: 4px;
+    }
+
+    .chat-container {
+      display: flex; flex-direction: column; min-height: 220px; max-height: 320px;
+      background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px;
+      overflow-y: auto; gap: 10px; border: 1px solid var(--glass-border);
+    }
+    .msg { max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.4; }
+    .msg--in { background: rgba(255,255,255,0.06); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .msg--out { background: var(--neon-purple); align-self: flex-end; color: #fff; border-bottom-right-radius: 4px; }
+    .msg__sender { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; font-weight: 600; }
+    .msg--out .msg__sender { color: rgba(255,255,255,0.7); }
+    .msg__media { margin-top: 6px; border-radius: 10px; overflow: hidden; max-width: 200px; }
+    .msg__media img, .msg__media video { width: 100%; display: block; border-radius: 10px; }
+
+    .chat-input-bar { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+    .chat-input-bar input { flex: 1; }
+    .attach-btn {
+      width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
+      display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px;
+    }
+
+    /* Shopping List in Room */
+    .shop-list { margin-bottom: 12px; }
+    .shop-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+    }
+    .shop-item__name { font-weight: 600; }
+    .shop-item__price { color: var(--text-muted); font-size: 11px; }
+    .counter { display: flex; align-items: center; gap: 6px; }
+    .counter button {
+      width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,0.05); color: #fff; cursor: pointer; font-size: 16px;
+    }
+    .counter span { min-width: 20px; text-align: center; font-weight: 700; }
+    .shop-total {
+      display: flex; justify-content: space-between; padding-top: 10px;
+      font-weight: 800; font-size: 14px; color: var(--neon-green);
+      text-shadow: 0 0 12px rgba(57,255,20,0.3);
+    }
+
+    .admin-panel {
+      margin-top: 12px; padding: 14px; border-radius: 14px;
+      border: 1px solid rgba(255,0,127,0.35);
+      background: rgba(255,0,127,0.06);
+    }
+    .admin-panel h3 { color: var(--neon-pink); font-size: 14px; }
+    .admin-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; font-size: 12px; }
+
+    /* Profile */
+    .profile-header { text-align: center; position: relative; }
+    .settings-btn {
+      position: absolute; top: 0; right: 0; width: 40px; height: 40px;
+      border-radius: 50%; border: 1px solid var(--glass-border); background: var(--glass-bg);
+      cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+    }
+    .profile-photo-wrap { position: relative; width: 72px; margin: 0 auto 10px; }
+    .profile-photo-wrap .avatar { width: 72px; height: 72px; font-size: 26px; }
+    .photo-edit {
+      position: absolute; bottom: 0; right: -4px; width: 26px; height: 26px;
+      border-radius: 50%; background: var(--neon-purple); border: 2px solid #0d0e12;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .stat-clickable { cursor: pointer; transition: transform 0.15s; }
+    .stat-clickable:active { transform: scale(0.95); }
+
+    .follower-row {
+      display: flex; align-items: center; gap: 12px; padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .follower-row--new { background: rgba(57,255,20,0.04); margin: 0 -18px; padding-left: 18px; padding-right: 18px; }
+    .tag-nuovo {
+      font-size: 9px; font-weight: 800; text-transform: uppercase;
+      background: var(--neon-green); color: #0d0e12; padding: 2px 6px; border-radius: 4px;
+      animation: pulse 1.5s ease infinite;
+    }
+    .badge-plus1 {
+      background: var(--neon-pink); color: #fff; font-size: 10px; font-weight: 800;
+      padding: 2px 6px; border-radius: 8px; animation: pulse 1.5s ease infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+    /* Modals */
+    .modal {
+      position: fixed; inset: 0; background: rgba(13,14,18,0.96);
+      backdrop-filter: blur(20px); z-index: 1000;
+      display: none; justify-content: center; align-items: flex-end;
+      padding: 0; overscroll-behavior: contain;
+    }
+    .modal.open { display: flex; }
+    .modal-content {
+      width: 100%; max-width: 480px; max-height: 90dvh; overflow-y: auto;
+      background: #151821; border-top-left-radius: 24px; border-top-right-radius: 24px;
+      padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; gap: 14px;
+      border-top: 1px solid var(--glass-border);
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 0 auto 8px; }
+    .modal-close { align-self: flex-end; background: none; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; }
+
+    .user-profile-expand { text-align: center; }
+    .user-profile-expand .avatar { width: 80px; height: 80px; font-size: 28px; margin: 0 auto 12px; }
+
+    .toggle-wrap { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
+    .room-selector { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
+    .request-actions { display: flex; gap: 6px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="ambient ambient--purple"></div>
+  <div class="ambient ambient--pink"></div>
+  <div id="toast" class="toast"></div>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="logo">PRESY</div>
+      <button type="button" class="header-login" id="globalLoginBtn" onclick="app.openAuthModal()">Accedi</button>
+    </header>
+
+    <main class="app-main">
+      <!-- ESPLORA -->
+      <section id="view-explore" class="app-view active">
+        <div class="card">
+          <h2>Pre-Serata Attivi</h2>
+          <p class="subtitle">Sfoglia cosa succede intorno a te senza obbligo di account.</p>
+          <div class="filter-grid">
+            <div class="input-group">
+              <label>Provincia</label>
+              <select id="filterProvincia" onchange="app.applyFilters()"></select>
+            </div>
+            <div class="input-group">
+              <label>Max Budget (€ a testa)</label>
+              <input type="number" id="filterBudget" placeholder="Es. 20" min="0" step="0.5" oninput="app.applyFilters()">
+            </div>
+            <div class="input-group input-group--full">
+              <label>Data</label>
+              <input type="date" id="filterDate" onchange="app.applyFilters()">
+            </div>
+            <div class="input-group input-group--full">
+              <label>Dopo si va a...</label>
+              <input type="text" id="filterClub" placeholder="Es. Aegua, Timone" oninput="app.applyFilters()">
+            </div>
+            <div class="filter-time-block">
+              <p class="filter-time-label">Inserisci orario di inizio nel range qua sotto</p>
+              <div class="filter-time-row">
+                <div class="input-group">
+                  <label>Dalle ore</label>
+                  <input type="time" id="filterTimeFrom" onchange="app.applyFilters()">
+                </div>
+                <div class="input-group">
+                  <label>Alle ore</label>
+                  <input type="time" id="filterTimeTo" onchange="app.applyFilters()">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="exploreListContainer" style="display:flex;flex-direction:column;gap:14px;"></div>
+      </section>
+
+      <!-- CREA -->
+      <section id="view-create" class="app-view">
+        <div class="card">
+          <h2>Crea un Pre-Serata</h2>
+          <p class="subtitle">Imposta il vibe e attira la crew. La spesa si calcola in stanza.</p>
+          <div class="input-group">
+            <label>Nome del Pre-Party / Vibe</label>
+            <input type="text" id="pName" placeholder="Es. Warmup Carico Sotto Le Stelle 🚀">
+          </div>
+          <div class="row">
+            <div class="input-group" style="flex:1;">
+              <label>Città</label>
+              <input type="text" id="pCitta" placeholder="Es. Sanremo, Torino">
+            </div>
+            <div class="input-group" style="flex:1;">
+              <label>Provincia</label>
+              <input type="text" id="pProvincia" placeholder="Es. IM, TO">
+            </div>
+          </div>
+          <div class="row">
+            <div class="input-group" style="flex:1;">
+              <label>Data</label>
+              <input type="date" id="pData">
+            </div>
+            <div class="input-group" style="flex:1;">
+              <label>Orario Incontro</label>
+              <input type="time" id="pOrario" value="21:00">
+            </div>
+          </div>
+          <div class="row">
+            <div class="input-group" style="flex:1;">
+              <label>Privacy</label>
+              <select id="pPrivacy">
+                <option value="PUBLIC">Pubblico (In Bacheca)</option>
+                <option value="PRIVATE">Privato (Solo Link)</option>
+              </select>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Dove ci si incontra?</label>
+            <input type="text" id="pGeoloc" placeholder="Es. Porto Maurizio, Molo Lungo">
+          </div>
+          <div class="input-group">
+            <label>Discoteca/Club successivo</label>
+            <input type="text" id="pClub" placeholder="Es. Aegua / Timone">
+          </div>
+          <div class="input-group">
+            <label>Link Biglietti Esterno</label>
+            <input type="text" id="pTicketLink" placeholder="https://...">
+          </div>
+          <button class="btn" onclick="app.handleCreateParty()">Lancia Pre-Serata 🚀</button>
+        </div>
+      </section>
+
+      <!-- AMICI -->
+      <section id="view-social" class="app-view">
+        <div class="card">
+          <h2>Amici</h2>
+          <p class="subtitle">Trova, segui e invita la tua crew.</p>
+          <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Collega Contatti della Rubrica</button>
+          <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita la tua Crew</button>
+          <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()">
+          <div id="searchHistoryContainer" class="search-history"></div>
+          <div id="socialUsersContainer" style="margin-top:14px;"></div>
+        </div>
+      </section>
+
+      <!-- CHAT -->
+      <section id="view-chat" class="app-view">
+        <div class="card">
+          <h2 id="chatRoomTitle">Seleziona una Chat</h2>
+          <p class="subtitle" id="chatRoomSubtitle">Entra in un pre-serata per sbloccare la stanza.</p>
+
+          <div class="chat-search-wrap">
+            <input type="text" id="chatSearchField" placeholder="Cerca utente o gruppo..." oninput="app.handleChatSearch()">
+            <div id="chatSearchResults" class="chat-search-results"></div>
+          </div>
+
+          <div class="chat-subtabs">
+            <button type="button" id="chatTabMain" class="active" onclick="app.switchChatSection('chat')">Chat</button>
+            <button type="button" id="chatTabRequests" onclick="app.switchChatSection('requests')">
+              Richieste <span class="badge-count" id="requestsBadge" style="display:none;">0</span>
+            </button>
+          </div>
+
+          <div id="chatMainPanel">
+            <div id="activeChatSelector" class="room-selector"></div>
+            <div id="roomShoppingPanel"></div>
+            <div class="chat-container" id="chatMessagesBox"></div>
+            <div class="chat-input-bar">
+              <label class="attach-btn" for="chatMediaInput">📎</label>
+              <input type="file" id="chatMediaInput" accept="image/*,video/*" hidden onchange="app.handleMediaAttach(event)">
+              <input type="text" id="chatInputField" placeholder="Scrivi un messaggio..." onkeydown="if(event.key==='Enter')app.sendMessage()">
+              <button class="btn btn--sm" onclick="app.sendMessage()" style="width:auto;padding:0 18px;">Invia</button>
+            </div>
+          </div>
+
+          <div id="chatRequestsPanel" style="display:none;"></div>
+        </div>
+      </section>
+
+      <!-- PROFILO -->
+      <section id="view-profile" class="app-view">
+        <div class="card profile-header">
+          <button type="button" class="settings-btn" onclick="app.openSettingsModal()" title="Impostazioni">⚙️</button>
+          <div class="profile-photo-wrap">
+            <div class="avatar" id="profAvatar">?</div>
+            <label class="photo-edit" for="profilePhotoInput">📷</label>
+            <input type="file" id="profilePhotoInput" accept="image/*" hidden onchange="app.handleProfilePhoto(event)">
+          </div>
+          <div class="input-group" style="margin-bottom:8px;">
+            <label>Nome Visualizzato</label>
+            <input type="text" id="profDisplayName" placeholder="Il tuo nome" onchange="app.saveDisplayName()">
+          </div>
+          <h2 id="profUsername">Guest Mode</h2>
+          <p class="subtitle" id="profMail" style="margin-bottom:0;">Nessun account collegato</p>
+          <div class="row" style="justify-content:center;gap:24px;margin:14px 0;">
+            <div class="stat-clickable" onclick="app.openFollowersModal()">
+              <strong id="countFollowers" style="color:var(--neon-blue);font-size:18px;">0</strong>
+              <p style="font-size:11px;color:var(--text-muted);">Follower</p>
+            </div>
+            <div>
+              <strong id="countParticipated" style="color:var(--neon-pink);font-size:18px;">0</strong>
+              <p style="font-size:11px;color:var(--text-muted);">Pre-Serata</p>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>I Tuoi Pre-Serata Passati</h3>
+          <div class="toggle-wrap" style="margin-bottom:14px;background:rgba(0,0,0,0.2);padding:10px;border-radius:8px;">
+            <span>Mostra nel mio Feed Pubblico</span>
+            <input type="checkbox" id="profileFeedToggle" checked style="width:auto;cursor:pointer;" onchange="app.toggleFeedVisibility()">
+          </div>
+          <div id="profileHistoryContainer"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="app-tabs">
+      <button class="tabs__btn tabs__btn--active" onclick="app.switchTab('explore')" id="tab-explore"><span class="tabs__icon">🔥</span><span>Esplora</span></button>
+      <button class="tabs__btn" onclick="app.switchTab('create')" id="tab-create"><span class="tabs__icon">🎉</span><span>Crea</span></button>
+      <button class="tabs__btn" onclick="app.switchTab('social')" id="tab-social"><span class="tabs__icon">👥</span><span>Amici</span></button>
+      <button class="tabs__btn" onclick="app.switchTab('chat')" id="tab-chat"><span class="tabs__icon">💬</span><span>Chat</span></button>
+      <button class="tabs__btn" onclick="app.switchTab('profile')" id="tab-profile"><span class="tabs__icon">👤</span><span>Profilo</span></button>
+    </nav>
+  </div>
+
+  <!-- AUTH MODAL -->
+  <div class="modal" id="authModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>Registrazione Istantanea</h2>
+      <p class="subtitle">Inserisci i dati per sbloccare l'interazione.</p>
+      <div class="input-group"><label>Username</label><input type="text" id="authUsername" placeholder="es. andrea_adf"></div>
+      <div class="input-group"><label>Email</label><input type="email" id="authEmail" placeholder="nome@esempio.com"></div>
+      <div class="input-group"><label>Password</label><input type="password" id="authPassword" placeholder="******"></div>
+      <button class="btn" onclick="app.executeAuth()">Crea Account & Continua 🚀</button>
+      <button class="btn btn--secondary" onclick="app.closeAuthModal()">Annulla</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>⚙️ Impostazioni</h2>
+      <div class="input-group"><label>Email</label><input type="email" id="settingsEmail"></div>
+      <div class="input-group"><label>Username</label><input type="text" id="settingsUsername"></div>
+      <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
+      <button class="btn" onclick="app.saveSettings()">Salva Modifiche</button>
+      <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- FOLLOWERS MODAL -->
+  <div class="modal" id="followersModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>I tuoi Follower</h2>
+      <p class="subtitle">Ordinati dal più recente</p>
+      <div id="followersListContainer"></div>
+      <button class="btn btn--secondary" onclick="app.closeModal('followersModal')">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- USER PROFILE MODAL -->
+  <div class="modal" id="userProfileModal">
+    <div class="modal-content user-profile-expand">
+      <button type="button" class="modal-close" onclick="app.closeModal('userProfileModal')">×</button>
+      <div id="userProfileModalBody"></div>
+    </div>
+  </div>
+
+  <!-- EDIT PARTY MODAL -->
+  <div class="modal" id="editPartyModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>✏️ Modifica Pre-Serata</h2>
+      <p class="subtitle">Aggiorna i dettagli del tuo evento.</p>
+      <div class="input-group"><label>Nome / Vibe</label><input type="text" id="editPName"></div>
+      <div class="row">
+        <div class="input-group" style="flex:1;"><label>Città</label><input type="text" id="editPCitta" placeholder="Es. Sanremo"></div>
+        <div class="input-group" style="flex:1;"><label>Provincia</label><input type="text" id="editPProvincia" placeholder="Es. IM"></div>
+      </div>
+      <div class="row">
+        <div class="input-group" style="flex:1;"><label>Data</label><input type="date" id="editPData"></div>
+        <div class="input-group" style="flex:1;"><label>Orario</label><input type="time" id="editPOrario"></div>
+      </div>
+      <div class="input-group"><label>Luogo incontro</label><input type="text" id="editPGeoloc"></div>
+      <div class="input-group"><label>Discoteca / Club</label><input type="text" id="editPClub"></div>
+      <div class="input-group"><label>Privacy</label>
+        <select id="editPPrivacy"><option value="PUBLIC">Pubblico</option><option value="PRIVATE">Privato</option></select>
+      </div>
+      <div class="input-group"><label>Link Biglietti</label><input type="text" id="editPTicketLink"></div>
+      <button class="btn" onclick="app.saveEditParty()">Salva Modifiche ✓</button>
+      <button class="btn btn--secondary" onclick="app.closeModal('editPartyModal')">Annulla</button>
+    </div>
+  </div>
+
+  <!-- MEDIA LIGHTBOX -->
+  <div class="lightbox" id="mediaLightbox" onclick="app.closeLightbox(event)">
+    <button type="button" class="lightbox__close" onclick="app.closeLightbox(event)">×</button>
+    <div class="lightbox__content" id="lightboxContent" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <script>
+    class PresyEngine {
+      constructor() {
+        this.ADMIN_EMAIL = 'difalcoandrea.6@gmail.com';
+        this._today = new Date().toISOString().slice(0, 10);
+
+        this.globalCatalog = [
+          { id: 'vodka', name: 'Vodka', price: 15 },
+          { id: 'gin', name: 'Gin', price: 18 },
+          { id: 'rum', name: 'Rum', price: 16 },
+          { id: 'tonic', name: 'Tonic/Soda', price: 2 },
+          { id: 'ice', name: 'Ghiaccio', price: 3 },
+          { id: 'snack', name: 'Snack', price: 2.5 }
+        ];
+
+        this.pendingCatalogItems = [
+          { id: 'pc1', name: 'Prosecco DOC', price: 9, submittedBy: 'vale_riviera' }
+        ];
+
+        this.users = [
+          { id: 101, username: 'vale_riviera', email: 'vale@presy.io', displayName: 'Valentina', avatar: null, followers: 142, participated: 12, followedByMe: false, followsMe: true },
+          { id: 102, username: 'luca_to99', email: 'luca@torino.it', displayName: 'Luca', avatar: null, followers: 89, participated: 8, followedByMe: true, followsMe: true },
+          { id: 103, username: 'matteo_imperia', email: 'matteo@adf.com', displayName: 'Matteo', avatar: null, followers: 231, participated: 24, followedByMe: false, followsMe: false }
+        ];
+
+        this.myFollowers = [
+          { userId: 101, followedAt: Date.now() - 3600000, isNew: true },
+          { userId: 102, followedAt: Date.now() - 86400000 * 2, isNew: false },
+          { userId: 103, followedAt: Date.now() - 86400000 * 5, isNew: false }
+        ];
+
+        this.parties = [
+          this._makeParty(1, 'Warmup Aegua Deluxe', 'Imperia', 'IM', this._today, '21:00', 'Molo Imperia', 'Aegua', 'https://dice.fm', 'PUBLIC', 'vale_riviera', [101, 102]),
+          this._makeParty(2, 'Pre-Serata Rigido Timone', 'Diano Marina', 'IM', this._today, '20:30', 'Piazza Diano Marina', 'Timone', 'https://ticketsms.it', 'PUBLIC', 'matteo_imperia', [103]),
+          this._makeParty(3, 'Delirio Pre-Palatenda', 'Torino', 'TO', this._today, '22:00', 'Parco Valentino', 'Palatenda', '', 'PUBLIC', 'luca_to99', [102, 101])
+        ];
+
+        this.messages = [
+          { roomId: 'party_1', sender: 'vale_riviera', text: 'Portate il ghiaccio raga!', media: null, ts: Date.now() - 600000 },
+          { roomId: 'party_1', sender: 'luca_to99', text: 'Io ho preso 2 bottiglie di Gin.', media: null, ts: Date.now() - 300000 },
+          { roomId: 'dm_101', sender: 'vale_riviera', text: 'Ehi, ci si vede all\'Aegua stasera?', media: null, ts: Date.now() - 120000, isRequest: true }
+        ];
+
+        this.dmRequests = [{ roomId: 'dm_101', userId: 101, username: 'vale_riviera' }];
+        this.acceptedDMs = ['dm_102'];
+
+        this.currentUser = null;
+        this.currentChatRoom = 'party_1';
+        this.chatSection = 'chat';
+        this.showPastEventsOnFeed = true;
+        this.searchHistory = JSON.parse(localStorage.getItem('presy_search_history') || '[]');
+        this.pendingMedia = null;
+        this.authCallback = null;
+        this.editingPartyId = null;
+        this.chatSearchQuery = '';
+        this.initiatedDMs = ['dm_102'];
+      }
+
+      _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
+        return {
+          id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants,
+          shoppingList: this.globalCatalog.map(function (c) {
+            return { catalogId: c.id, name: c.name, price: c.price, qty: id === 1 && c.id === 'gin' ? 2 : (id === 2 && c.id === 'vodka' ? 1 : 0), custom: false };
+          }),
+          customItems: []
+        };
+      }
+
+      _normalizeProvincia(code) {
+        return (code || '').trim().toUpperCase();
+      }
+
+      init() {
+        document.getElementById('filterDate').value = this._today;
+        document.getElementById('pData').value = this._today;
+        this.populateProvinceFilter();
+        this.renderExplore();
+        this.renderSocial();
+        this.renderSearchHistory();
+        this.renderChat();
+        this.updateAuthUI();
+      }
+
+      /* ─── Utils ─── */
+      timeToMinutes(t) {
+        if (!t) return null;
+        var p = t.split(':').map(Number);
+        return p[0] * 60 + p[1];
+      }
+
+      formatEuro(n) { return '€' + n.toFixed(2); }
+
+      getPartyBudgetPerPerson(party) {
+        var total = 0;
+        party.shoppingList.forEach(function (i) { total += i.price * i.qty; });
+        (party.customItems || []).forEach(function (i) { total += i.price * i.qty; });
+        var n = Math.max(party.participants.length, 1);
+        return total / n;
+      }
+
+      getActiveProvinces() {
+        var set = {};
+        this.parties.filter(function (p) { return p.privacy === 'PUBLIC'; }).forEach(function (p) {
+          set[this._normalizeProvincia(p.provincia)] = true;
+        }, this);
+        return Object.keys(set);
+      }
+
+      populateProvinceFilter() {
+        var sel = document.getElementById('filterProvincia');
+        var active = this.getActiveProvinces();
+        var current = sel.value || 'ALL';
+        sel.innerHTML = '<option value="ALL">Tutte</option>';
+        active.forEach(function (code) {
+          var opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code;
+          sel.appendChild(opt);
+        });
+        var other = document.createElement('option');
+        other.value = 'OTHER';
+        other.textContent = 'Altra Provincia...';
+        sel.appendChild(other);
+        if ([].slice.call(sel.options).some(function (o) { return o.value === current; })) sel.value = current;
+      }
+
+      openGoogleMaps(partyId) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+        var query = encodeURIComponent(party.geoloc + ' ' + (party.citta || ''));
+        window.open('https://www.google.com/maps/search/?api=1&query=' + query, '_blank', 'noopener,noreferrer');
+      }
+
+      isOwner(party) {
+        return this.currentUser && party.creator === this.currentUser.username;
+      }
+
+      getUserById(userId) {
+        if (this.currentUser && this.currentUser.id === userId) return this.currentUser;
+        return this.users.find(function (u) { return u.id === userId; });
+      }
+
+      getUserByUsername(username) {
+        if (this.currentUser && this.currentUser.username === username) return this.currentUser;
+        return this.users.find(function (u) { return u.username === username; });
+      }
+
+      renderParticipantPreview(party) {
+        var self = this;
+        var chips = party.participants.map(function (pid) {
+          var u = self.getUserById(pid);
+          var isHost = u && party.creator === u.username;
+          var label = u ? ('@' + u.username) : ('User#' + pid);
+          var av = u
+            ? (u.avatar ? '<img src="' + u.avatar + '" alt="">' : (u.displayName || u.username)[0].toUpperCase())
+            : '?';
+          var uid = u ? u.id : 0;
+          return '<span class="participant-chip' + (isHost ? ' participant-chip--host' : '') + '" onclick="event.stopPropagation();' +
+            (uid ? 'app.openUserProfile(' + uid + ')' : '') + '">' +
+            '<span class="avatar">' + av + '</span>' + label +
+            (isHost ? ' 👑' : '') + '</span>';
+        }).join('');
+        return '<div class="participant-preview"><div class="participant-preview__label">Crew (' + party.participants.length + ')</div><div class="participant-chips">' + chips + '</div></div>';
+      }
+
+      buildShareText(party) {
+        return 'Entra nel pre-serata di Presy per stasera! 🚀 Vibe: ' + party.name +
+          ' — Ci vediamo alle ' + party.orario + ' a ' + party.geoloc +
+          ' e dopo si vola all\'omonimo ' + party.club +
+          '! Entra nella crew qui: https://presy.app/party=' + party.id;
+      }
+
+      async shareParty(partyId) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+        var text = this.buildShareText(party);
+        var shareData = {
+          title: 'Presy — ' + party.name,
+          text: text,
+          url: 'https://presy.app/party=' + party.id
+        };
+        try {
+          if (navigator.share && typeof navigator.share === 'function') {
+            await navigator.share(shareData);
+            return;
+          }
+          throw new Error('Web Share API non disponibile');
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
+          await this.copyShareFallback(text);
+        }
+      }
+
+      async copyShareFallback(text) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            throw new Error('Clipboard non disponibile');
+          }
+          this.showToast('Link copiato, mandalo sulla chat della crew! 📲');
+        } catch (err) {
+          prompt('Copia e condividi:', text);
+          this.showToast('Link copiato, mandalo sulla chat della crew! 📲');
+        }
+      }
+
+      renderOwnerActions(partyId) {
+        return '<div class="party-actions-row">' +
+          '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + partyId + ')">✏️ Modifica</button>' +
+          '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + partyId + ')">🗑 Elimina</button>' +
+        '</div>';
+      }
+
+      deleteParty(partyId, fromProfile) {
+        if (!this.currentUser) return;
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party || !this.isOwner(party)) return;
+        if (!confirm('Eliminare "' + party.name + '"?')) return;
+
+        var cardEl = document.querySelector('[data-party-id="' + partyId + '"]');
+        var self = this;
+
+        function removeFromState() {
+          self.parties = self.parties.filter(function (p) { return p.id !== partyId; });
+          if (self.currentChatRoom === 'party_' + partyId) {
+            var next = self.parties.find(function (p) { return p.participants.includes(self.currentUser.id); });
+            self.currentChatRoom = next ? 'party_' + next.id : '';
+          }
+          self.messages = self.messages.filter(function (m) { return m.roomId !== 'party_' + partyId; });
+          self.populateProvinceFilter();
+          self.showToast('Pre-serata eliminato 🗑');
+          if (fromProfile) self.renderProfile();
+          else self.renderExplore();
+        }
+
+        if (cardEl) {
+          cardEl.classList.add('party-card--removing');
+          setTimeout(removeFromState, 400);
+        } else {
+          removeFromState();
+        }
+      }
+
+      openEditParty(partyId) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party || !this.isOwner(party)) return;
+        this.editingPartyId = partyId;
+        document.getElementById('editPName').value = party.name;
+        document.getElementById('editPCitta').value = party.citta || '';
+        document.getElementById('editPProvincia').value = party.provincia || '';
+        document.getElementById('editPData').value = party.data || '';
+        document.getElementById('editPOrario').value = party.orario;
+        document.getElementById('editPGeoloc').value = party.geoloc;
+        document.getElementById('editPClub').value = party.club;
+        document.getElementById('editPPrivacy').value = party.privacy;
+        document.getElementById('editPTicketLink').value = party.ticketLink || '';
+        this.openModal('editPartyModal');
+      }
+
+      saveEditParty() {
+        var party = this.parties.find(function (p) { return p.id === this.editingPartyId; }, this);
+        if (!party) return;
+        party.name = document.getElementById('editPName').value.trim() || party.name;
+        party.citta = document.getElementById('editPCitta').value.trim();
+        party.provincia = this._normalizeProvincia(document.getElementById('editPProvincia').value);
+        party.data = document.getElementById('editPData').value;
+        party.orario = document.getElementById('editPOrario').value;
+        party.geoloc = document.getElementById('editPGeoloc').value.trim();
+        party.club = document.getElementById('editPClub').value.trim();
+        party.privacy = document.getElementById('editPPrivacy').value;
+        party.ticketLink = document.getElementById('editPTicketLink').value.trim();
+        this.closeModal('editPartyModal');
+        this.editingPartyId = null;
+        this.populateProvinceFilter();
+        this.showToast('Pre-serata aggiornato ✓');
+        this.renderExplore();
+        this.renderProfile();
+        if (this.currentChatRoom === 'party_' + party.id) this.renderChat();
+      }
+
+      isAdmin() {
+        return this.currentUser && this.currentUser.email === this.ADMIN_EMAIL;
+      }
+
+      isMutualFollow(userId) {
+        var u = this.users.find(function (x) { return x.id === userId; });
+        return u && u.followedByMe && u.followsMe;
+      }
+
+      isDMInRequests(roomId) {
+        return this.dmRequests.some(function (r) { return r.roomId === roomId; });
+      }
+
+      showToast(msg) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(function () { t.classList.remove('show'); }, 2800);
+      }
+
+      openModal(id) { document.getElementById(id).classList.add('open'); }
+      closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+      switchTab(tabId) {
+        document.querySelectorAll('.app-view').forEach(function (el) { el.classList.remove('active'); });
+        document.querySelectorAll('.tabs__btn').forEach(function (el) { el.classList.remove('tabs__btn--active'); });
+        document.getElementById('view-' + tabId).classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('tabs__btn--active');
+        if (tabId === 'profile') this.renderProfile();
+        if (tabId === 'chat') this.renderChat();
+        if (tabId === 'social') this.renderSocial();
+        if (tabId === 'explore') { this.populateProvinceFilter(); this.renderExplore(); }
+      }
+
+      /* ─── Auth ─── */
+      openAuthModal(cb) {
+        this.authCallback = cb || null;
+        this.openModal('authModal');
+      }
+      closeAuthModal() { this.closeModal('authModal'); }
+
+      executeAuth() {
+        var user = document.getElementById('authUsername').value.trim();
+        var email = document.getElementById('authEmail').value.trim();
+        var pass = document.getElementById('authPassword').value;
+        if (!user || !email) return alert('Inserisci i dati richiesti!');
+        this.currentUser = {
+          id: Date.now(), username: user, email: email, password: pass,
+          displayName: user, avatar: null, followers: 3, participated: 0
+        };
+        this.closeAuthModal();
+        this.updateAuthUI();
+        if (this.authCallback) { this.authCallback(); this.authCallback = null; }
+        this.renderExplore();
+      }
+
+      updateAuthUI() {
+        var btn = document.getElementById('globalLoginBtn');
+        if (this.currentUser) {
+          btn.textContent = 'Profilo';
+          btn.style.color = 'var(--neon-green)';
+          btn.onclick = function () { app.switchTab('profile'); };
+        } else {
+          btn.textContent = 'Accedi';
+          btn.style.color = 'var(--neon-blue)';
+          btn.onclick = function () { app.openAuthModal(); };
+        }
+      }
+
+      /* ─── Explore Filters ─── */
+      applyFilters() { this.renderExplore(); }
+
+      filterParties() {
+        var self = this;
+        var fProv = document.getElementById('filterProvincia').value;
+        var fBudRaw = document.getElementById('filterBudget').value;
+        var fBud = fBudRaw === '' ? null : parseFloat(fBudRaw);
+        var fClub = document.getElementById('filterClub').value.toLowerCase().trim();
+        var fDate = document.getElementById('filterDate').value;
+        var fFrom = document.getElementById('filterTimeFrom').value;
+        var fTo = document.getElementById('filterTimeTo').value;
+        var fromMin = this.timeToMinutes(fFrom);
+        var toMin = this.timeToMinutes(fTo);
+        var hasTimeRange = fFrom && fTo;
+
+        return this.parties.filter(function (p) {
+          if (p.privacy !== 'PUBLIC') return false;
+          if (fProv === 'OTHER') return false;
+          if (fProv !== 'ALL' && self._normalizeProvincia(p.provincia) !== self._normalizeProvincia(fProv)) return false;
+
+          var perPerson = self.getPartyBudgetPerPerson(p);
+          if (fBud !== null && !isNaN(fBud) && perPerson > fBud) return false;
+          if (fClub && !p.club.toLowerCase().includes(fClub)) return false;
+
+          if (fDate && p.data !== fDate) return false;
+
+          if (hasTimeRange) {
+            var pMin = self.timeToMinutes(p.orario);
+            if (pMin === null || pMin < fromMin || pMin > toMin) return false;
+          }
+
+          return true;
+        }).map(function (p) { return { party: p }; });
+      }
+
+      renderExplore() {
+        var container = document.getElementById('exploreListContainer');
+        container.innerHTML = '';
+        var fProv = document.getElementById('filterProvincia').value;
+        var results = this.filterParties();
+
+        if (results.length === 0 || fProv === 'OTHER') {
+          container.innerHTML = this.renderEmptyState(fProv);
+          return;
+        }
+
+        var self = this;
+        results.forEach(function (item) {
+          var p = item.party;
+          var card = document.createElement('div');
+          card.className = 'card party-card';
+          card.setAttribute('data-party-id', p.id);
+          var perPerson = self.getPartyBudgetPerPerson(p);
+          var isJoined = self.currentUser && p.participants.includes(self.currentUser.id);
+          var isOwner = self.isOwner(p);
+          var dateLabel = p.data ? self.formatPartyDate(p.data) : '';
+
+          card.innerHTML =
+            '<div class="party-card__meta">' +
+              '<span class="location-link" onclick="app.openGoogleMaps(' + p.id + ')" role="button" tabindex="0">' +
+                '📍 ' + p.geoloc + ', ' + (p.citta || '') + ' (' + p.provincia + ')' +
+              '</span>' +
+              '<span class="pill">~' + self.formatEuro(perPerson) + '/testa</span>' +
+            '</div>' +
+            '<div class="party-card__title">' + p.name + '</div>' +
+            '<div class="party-card__details">' +
+              (dateLabel ? dateLabel + ' · ' : '') +
+              'Orario: <strong>' + p.orario + '</strong>' +
+              ' | Direzione: <span class="pill pill--pink">' + p.club + '</span>' +
+            '</div>' +
+            self.renderParticipantPreview(p) +
+            '<div class="party-actions">' +
+              '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + p.id + ')">📤 Condividi</button>' +
+              (p.ticketLink ? '<a href="' + p.ticketLink + '" target="_blank" rel="noopener" class="btn btn--secondary btn--sm">🎫 Ticket</a>' : '') +
+              '<button type="button" class="btn btn--sm ' + (isJoined ? 'btn--secondary' : '') + '" onclick="app.joinParty(' + p.id + ')">' +
+                (isJoined ? 'Sei iscritto ✓' : 'Partecipa') +
+              '</button>' +
+            '</div>' +
+            (isOwner ? self.renderOwnerActions(p.id) : '');
+          container.appendChild(card);
+        });
+      }
+
+      formatPartyDate(isoDate) {
+        if (!isoDate) return '';
+        var parts = isoDate.split('-');
+        if (parts.length !== 3) return isoDate;
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+      }
+
+      renderEmptyState(fProv) {
+        var provLabel = fProv === 'OTHER' || fProv === 'ALL' ? 'la tua zona' : fProv;
+        var waText = encodeURIComponent('Vorrei portare presy nella mia provincia! Mi trovo a: ' + provLabel);
+        return (
+          '<div class="empty-state">' +
+            '<p>Nessun pre-serata presente, ' +
+            '<span class="link-action" onclick="app.switchTab(\'create\')">creane uno tu</span> ' +
+            'per portare presy nella tua provincia, o ' +
+            '<a class="link-action link-action--wa" href="https://wa.me/?text=' + waText + '" target="_blank" rel="noopener">chiedi a noi</a> ' +
+            'di portarlo!</p>' +
+          '</div>'
+        );
+      }
+
+      joinParty(partyId) {
+        if (!this.currentUser) return this.openAuthModal(function () { app.joinParty(partyId); });
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party.participants.includes(this.currentUser.id)) {
+          party.participants.push(this.currentUser.id);
+          this.currentUser.participated++;
+          this.showToast('Sei nella crew di ' + party.name + '! 🎉');
+          this.currentChatRoom = 'party_' + party.id;
+          this.switchTab('chat');
+          this.renderExplore();
+        } else {
+          this.currentChatRoom = 'party_' + party.id;
+          this.switchTab('chat');
+        }
+      }
+
+      handleCreateParty() {
+        if (!this.currentUser) return this.openAuthModal(function () { app.handleCreateParty(); });
+        var name = document.getElementById('pName').value.trim();
+        var citta = document.getElementById('pCitta').value.trim();
+        var provincia = this._normalizeProvincia(document.getElementById('pProvincia').value);
+        var data = document.getElementById('pData').value || this._today;
+        var orario = document.getElementById('pOrario').value;
+        var privacy = document.getElementById('pPrivacy').value;
+        var geoloc = document.getElementById('pGeoloc').value.trim();
+        var club = document.getElementById('pClub').value.trim();
+        var ticketLink = document.getElementById('pTicketLink').value.trim();
+        if (!name || !geoloc || !club || !citta || !provincia) {
+          return alert('Inserisci Vibe, Città, Provincia, Luogo e Discoteca!');
+        }
+
+        var newParty = this._makeParty(
+          this.parties.length + 1, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy,
+          this.currentUser.username, [this.currentUser.id]
+        );
+        this.parties.unshift(newParty);
+        this.currentUser.participated++;
+        this.showToast('Pre-Serata lanciato! 🚀');
+        document.getElementById('pName').value = '';
+        document.getElementById('pCitta').value = '';
+        document.getElementById('pProvincia').value = '';
+        document.getElementById('pData').value = this._today;
+        document.getElementById('pGeoloc').value = '';
+        document.getElementById('pClub').value = '';
+        document.getElementById('pTicketLink').value = '';
+        this.populateProvinceFilter();
+        this.switchTab('explore');
+        this.renderExplore();
+      }
+
+      /* ─── Amici / Social ─── */
+      syncContacts() {
+        this.showToast('✨ Rubrica sincronizzata! 12 amici pronti per Presy.');
+      }
+
+      copyInviteLink() {
+        var link = window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
+        navigator.clipboard.writeText(link).then(function () {
+          app.showToast('🔗 Link copiato! Invia alla tua crew.');
+        }).catch(function () {
+          prompt('Copia questo link:', link);
+        });
+      }
+
+      handleUserSearch() {
+        var val = document.getElementById('searchUserField').value.trim();
+        if (val.length >= 2) {
+          if (!this.searchHistory.includes(val.toLowerCase())) {
+            this.searchHistory.unshift(val.toLowerCase());
+            this.searchHistory = this.searchHistory.slice(0, 8);
+            localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
+            this.renderSearchHistory();
+          }
+        }
+        this.renderSocial();
+      }
+
+      renderSearchHistory() {
+        var c = document.getElementById('searchHistoryContainer');
+        if (!this.searchHistory.length) { c.innerHTML = ''; return; }
+        var self = this;
+        c.innerHTML = '<div class="search-history__title">Cronologia Ricerche</div>' +
+          this.searchHistory.map(function (term, i) {
+            return '<span class="history-chip">' + term +
+              '<button type="button" class="history-chip__x" onclick="app.removeSearchHistory(' + i + ')">×</button></span>';
+          }).join('');
+      }
+
+      removeSearchHistory(index) {
+        this.searchHistory.splice(index, 1);
+        localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
+        this.renderSearchHistory();
+      }
+
+      renderSocial() {
+        var container = document.getElementById('socialUsersContainer');
+        container.innerHTML = '';
+        var searchVal = document.getElementById('searchUserField').value.toLowerCase().trim();
+        var filtered = this.users.filter(function (u) { return u.username.toLowerCase().includes(searchVal); });
+        var self = this;
+
+        filtered.forEach(function (u) {
+          var row = document.createElement('div');
+          row.className = 'user-row';
+          var avContent = u.avatar
+            ? '<img src="' + u.avatar + '" alt="">'
+            : (u.displayName || u.username)[0].toUpperCase();
+
+          row.innerHTML =
+            '<div class="user-info" onclick="app.openUserProfile(' + u.id + ')">' +
+              '<div class="avatar">' + avContent + '</div>' +
+              '<div><div style="font-weight:700;">@' + u.username + '</div>' +
+              '<div style="font-size:12px;color:var(--text-muted);">' + u.followers + ' follower · ' + u.participated + ' party</div></div>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+              '<button class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.openDM(' + u.id + ',\'' + u.username + '\')">💬 DM</button>' +
+              '<button class="btn btn--sm" onclick="event.stopPropagation();app.toggleFollow(' + u.id + ')">' + (u.followedByMe ? 'Seguito' : 'Segui') + '</button>' +
+            '</div>';
+          container.appendChild(row);
+        });
+      }
+
+      openUserProfile(userId) {
+        var u = this.users.find(function (x) { return x.id === userId; });
+        if (!u) return;
+        var av = u.avatar
+          ? '<img src="' + u.avatar + '" alt="">'
+          : (u.displayName || u.username)[0].toUpperCase();
+        document.getElementById('userProfileModalBody').innerHTML =
+          '<div class="avatar">' + av + '</div>' +
+          '<h2>@' + u.username + '</h2>' +
+          '<p class="subtitle">' + (u.displayName || u.username) + '</p>' +
+          '<div class="row" style="justify-content:center;gap:20px;margin:16px 0;">' +
+            '<div><strong style="color:var(--neon-blue);">' + u.followers + '</strong><p style="font-size:12px;color:var(--text-muted);">Follower</p></div>' +
+            '<div><strong style="color:var(--neon-pink);">' + u.participated + '</strong><p style="font-size:12px;color:var(--text-muted);">Pre-Serata</p></div>' +
+          '</div>' +
+          '<button class="btn" onclick="app.openDM(' + u.id + ',\'' + u.username + '\');app.closeModal(\'userProfileModal\')">Invia DM 💬</button>' +
+          '<button class="btn btn--secondary" onclick="app.toggleFollow(' + u.id + ');app.openUserProfile(' + u.id + ')">' +
+            (u.followedByMe ? 'Smetti di seguire' : 'Segui') + '</button>';
+        this.openModal('userProfileModal');
+      }
+
+      toggleFollow(userId) {
+        if (!this.currentUser) return this.openAuthModal(function () { app.toggleFollow(userId); });
+        var user = this.users.find(function (u) { return u.id === userId; });
+        user.followedByMe = !user.followedByMe;
+        user.followers += user.followedByMe ? 1 : -1;
+        if (user.followedByMe && this.isMutualFollow(userId)) {
+          this.acceptDMRequest('dm_' + userId);
+        }
+        this.renderSocial();
+      }
+
+      /* ─── Chat ─── */
+      switchChatSection(section) {
+        this.chatSection = section;
+        document.getElementById('chatTabMain').classList.toggle('active', section === 'chat');
+        document.getElementById('chatTabRequests').classList.toggle('active', section === 'requests');
+        document.getElementById('chatMainPanel').style.display = section === 'chat' ? 'block' : 'none';
+        document.getElementById('chatRequestsPanel').style.display = section === 'requests' ? 'block' : 'none';
+        this.renderChat();
+      }
+
+      openDM(userId, username) {
+        if (!this.currentUser) return this.openAuthModal(function () { app.openDM(userId, username); });
+
+        var roomId = 'dm_' + userId;
+        var isMutual = this.isMutualFollow(userId);
+
+        if (!isMutual && !this.acceptedDMs.includes(roomId)) {
+          if (!this.initiatedDMs.includes(roomId)) {
+            this.initiatedDMs.push(roomId);
+          }
+        }
+
+        if (!isMutual && !this.acceptedDMs.includes(roomId) && !this.initiatedDMs.includes(roomId)) {
+          if (!this.dmRequests.some(function (r) { return r.roomId === roomId; })) {
+            this.dmRequests.push({ roomId: roomId, userId: userId, username: username });
+          }
+        }
+
+        this.currentChatRoom = roomId;
+        this.chatSearchQuery = '';
+        var searchField = document.getElementById('chatSearchField');
+        if (searchField) searchField.value = '';
+
+        this.switchTab('chat');
+
+        if (this.isDMInRequests(roomId) && !isMutual && !this.initiatedDMs.includes(roomId)) {
+          this.chatSection = 'requests';
+        } else {
+          this.chatSection = 'chat';
+          if (!this.acceptedDMs.includes(roomId) && (isMutual || this.initiatedDMs.includes(roomId))) {
+            if (!this.acceptedDMs.includes(roomId)) this.acceptedDMs.push(roomId);
+          }
+        }
+
+        document.getElementById('chatTabMain').classList.toggle('active', this.chatSection === 'chat');
+        document.getElementById('chatTabRequests').classList.toggle('active', this.chatSection === 'requests');
+        document.getElementById('chatMainPanel').style.display = this.chatSection === 'chat' ? 'block' : 'none';
+        document.getElementById('chatRequestsPanel').style.display = this.chatSection === 'requests' ? 'block' : 'none';
+
+        document.getElementById('chatRoomTitle').textContent = 'DM: @' + username;
+        document.getElementById('chatRoomSubtitle').textContent = isMutual ? 'Follow reciproco ✓' : 'Chat privata';
+
+        this.renderChat();
+        this.showToast('Chat con @' + username + ' aperta 💬');
+      }
+
+      handleChatSearch() {
+        this.chatSearchQuery = document.getElementById('chatSearchField').value.toLowerCase().trim();
+        this.renderChatSearchResults();
+        this.renderChat();
+      }
+
+      renderChatSearchResults() {
+        var container = document.getElementById('chatSearchResults');
+        if (!this.chatSearchQuery) { container.innerHTML = ''; return; }
+
+        var q = this.chatSearchQuery;
+        var self = this;
+        var html = '';
+
+        this.parties.filter(function (p) {
+          return !self.currentUser || p.participants.includes(self.currentUser.id);
+        }).filter(function (p) {
+          return p.name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q) || p.geoloc.toLowerCase().includes(q);
+        }).forEach(function (p) {
+          html += '<div class="chat-search-result" onclick="app.openPartyChat(' + p.id + ')">' +
+            '<span>🎉 <strong>' + p.name + '</strong><br><small style="color:var(--text-muted);">' + p.club + ' · ' + p.orario + '</small></span>' +
+            '<span style="color:var(--neon-purple);">→</span></div>';
+        });
+
+        this.users.filter(function (u) {
+          return u.username.toLowerCase().includes(q) || (u.displayName && u.displayName.toLowerCase().includes(q));
+        }).forEach(function (u) {
+          var hasChat = self.acceptedDMs.includes('dm_' + u.id) || self.initiatedDMs.includes('dm_' + u.id);
+          html += '<div class="chat-search-result' + (hasChat ? '' : ' chat-search-result--new') + '" onclick="app.openDM(' + u.id + ',\'' + u.username + '\')">' +
+            '<span>💬 @' + u.username + (hasChat ? '' : ' <small style="color:var(--neon-pink);">· Nuova chat</small>') + '</span>' +
+            '<span style="color:var(--neon-purple);">→</span></div>';
+        });
+
+        container.innerHTML = html || '<p style="font-size:12px;color:var(--text-muted);padding:8px;">Nessun risultato. Prova un altro nome.</p>';
+      }
+
+      openPartyChat(partyId) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+        this.currentChatRoom = 'party_' + partyId;
+        this.chatSearchQuery = '';
+        document.getElementById('chatSearchField').value = '';
+        document.getElementById('chatRoomTitle').textContent = party.name;
+        document.getElementById('chatRoomSubtitle').textContent = 'Incontro a ' + party.geoloc + ' alle ' + party.orario;
+        this.chatSection = 'chat';
+        this.renderChatSearchResults();
+        this.renderChat();
+      }
+
+      openLightbox(url, type) {
+        var content = document.getElementById('lightboxContent');
+        if (type && type.startsWith('video')) {
+          content.innerHTML = '<video src="' + url + '" controls autoplay></video>';
+        } else {
+          content.innerHTML = '<img src="' + url + '" alt="Media">';
+        }
+        document.getElementById('mediaLightbox').classList.add('open');
+      }
+
+      closeLightbox(e) {
+        if (e) e.stopPropagation();
+        document.getElementById('mediaLightbox').classList.remove('open');
+        document.getElementById('lightboxContent').innerHTML = '';
+      }
+
+      acceptDMRequest(roomId) {
+        this.dmRequests = this.dmRequests.filter(function (r) { return r.roomId !== roomId; });
+        if (!this.acceptedDMs.includes(roomId)) this.acceptedDMs.push(roomId);
+        this.currentChatRoom = roomId;
+        this.chatSection = 'chat';
+        document.getElementById('chatTabMain').classList.add('active');
+        document.getElementById('chatTabRequests').classList.remove('active');
+        document.getElementById('chatMainPanel').style.display = 'block';
+        document.getElementById('chatRequestsPanel').style.display = 'none';
+        var uid = parseInt(roomId.replace('dm_', ''), 10);
+        var u = this.users.find(function (x) { return x.id === uid; });
+        if (u) {
+          document.getElementById('chatRoomTitle').textContent = 'DM: @' + u.username;
+          document.getElementById('chatRoomSubtitle').textContent = 'Richiesta accettata ✓';
+        }
+        this.showToast('Richiesta accettata! 💬');
+        this.renderChat();
+      }
+
+      declineDMRequest(roomId) {
+        this.dmRequests = this.dmRequests.filter(function (r) { return r.roomId !== roomId; });
+        this.messages = this.messages.filter(function (m) { return m.roomId !== roomId; });
+        this.renderChat();
+      }
+
+      renderChat() {
+        var badge = document.getElementById('requestsBadge');
+        if (this.dmRequests.length > 0) {
+          badge.style.display = 'inline';
+          badge.textContent = this.dmRequests.length;
+        } else {
+          badge.style.display = 'none';
+        }
+
+        if (this.chatSection === 'requests') {
+          this.renderRequestsPanel();
+          return;
+        }
+
+        var selector = document.getElementById('activeChatSelector');
+        selector.innerHTML = '';
+        var self = this;
+        var q = this.chatSearchQuery;
+
+        this.parties.filter(function (p) {
+          return (!self.currentUser || p.participants.includes(self.currentUser.id)) &&
+            (!q || p.name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q));
+        }).forEach(function (p) {
+          var btn = document.createElement('button');
+          var isActive = self.currentChatRoom === 'party_' + p.id;
+          btn.className = 'btn btn--sm ' + (isActive ? 'room-btn--active' : 'btn--secondary');
+          btn.textContent = '🎉 ' + p.club;
+          btn.onclick = function () {
+            self.openPartyChat(p.id);
+          };
+          selector.appendChild(btn);
+        });
+
+        this.acceptedDMs.concat(this.initiatedDMs.filter(function (r) { return self.acceptedDMs.indexOf(r) === -1; }))
+          .filter(function (roomId, idx, arr) { return arr.indexOf(roomId) === idx; })
+          .forEach(function (roomId) {
+          var uid = parseInt(roomId.replace('dm_', ''), 10);
+          var u = self.users.find(function (x) { return x.id === uid; });
+          if (!u) return;
+          if (q && !u.username.toLowerCase().includes(q) && !(u.displayName && u.displayName.toLowerCase().includes(q))) return;
+          var btn = document.createElement('button');
+          var isActive = self.currentChatRoom === roomId;
+          btn.className = 'btn btn--sm ' + (isActive ? 'room-btn--active' : 'btn--secondary');
+          btn.textContent = '💬 @' + u.username;
+          btn.onclick = function () {
+            self.currentChatRoom = roomId;
+            document.getElementById('chatRoomTitle').textContent = 'DM: @' + u.username;
+            document.getElementById('chatRoomSubtitle').textContent = self.isMutualFollow(uid) ? 'Follow reciproco ✓' : 'Chat privata';
+            self.renderChat();
+          };
+          selector.appendChild(btn);
+        });
+
+        this.renderRoomShopping();
+        this.renderMessages();
+      }
+
+      renderRequestsPanel() {
+        var panel = document.getElementById('chatRequestsPanel');
+        var self = this;
+        if (!this.dmRequests.length) {
+          panel.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:30px;">Nessuna richiesta in sospeso.</p>';
+          return;
+        }
+        panel.innerHTML = this.dmRequests.map(function (req) {
+          var msgs = self.messages.filter(function (m) { return m.roomId === req.roomId; });
+          var preview = msgs.length ? msgs[msgs.length - 1].text : 'Nuova richiesta di messaggio';
+          var msgPreview = msgs.map(function (m) {
+            var media = m.media ? '<br><small>📎 Media allegato</small>' : '';
+            return '<div class="msg msg--in" style="margin-top:6px;font-size:13px;"><div class="msg__sender">@' + m.sender + '</div>' + (m.text || '') + media + '</div>';
+          }).join('');
+          return (
+            '<div class="card" style="margin-bottom:10px;">' +
+              '<strong>@' + req.username + '</strong>' +
+              '<p style="font-size:13px;color:var(--text-muted);margin:6px 0;">' + preview + '</p>' +
+              (msgPreview ? '<div style="max-height:120px;overflow-y:auto;margin-bottom:8px;">' + msgPreview + '</div>' : '') +
+              '<div class="request-actions">' +
+                '<button class="btn btn--sm" onclick="app.acceptDMRequest(\'' + req.roomId + '\')">Accetta</button>' +
+                '<button class="btn btn--sm btn--secondary" onclick="app.declineDMRequest(\'' + req.roomId + '\')">Elimina</button>' +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+      }
+
+      renderRoomShopping() {
+        var panel = document.getElementById('roomShoppingPanel');
+        panel.innerHTML = '';
+        if (!this.currentChatRoom.startsWith('party_')) return;
+
+        var partyId = parseInt(this.currentChatRoom.replace('party_', ''), 10);
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+
+        var self = this;
+        var total = 0;
+        party.shoppingList.forEach(function (i) { total += i.price * i.qty; });
+        (party.customItems || []).forEach(function (i) { total += i.price * i.qty; });
+        var perPerson = total / Math.max(party.participants.length, 1);
+
+        var html = '<div class="card shop-list" style="padding:14px;margin-bottom:10px;">' +
+          '<h3>🛒 Lista Spesa Collaborativa</h3>' +
+          '<p class="subtitle" style="margin-bottom:10px;">Budget live · ' + this.formatEuro(perPerson) + ' a testa</p>';
+
+        party.shoppingList.forEach(function (item, idx) {
+          html += self.renderShopRow(party, 'catalog', idx, item);
+        });
+        (party.customItems || []).forEach(function (item, idx) {
+          html += self.renderShopRow(party, 'custom', idx, item);
+        });
+
+        html += '<div class="shop-total"><span>Totale stanza</span><span>' + this.formatEuro(total) + '</span></div>';
+        html += '<div class="row" style="margin-top:10px;gap:8px;">' +
+          '<input type="text" id="customItemName" placeholder="Articolo custom" style="flex:1;">' +
+          '<input type="number" id="customItemPrice" placeholder="€" step="0.5" style="width:80px;">' +
+          '<button class="btn btn--sm btn--secondary" onclick="app.addCustomItem(' + partyId + ')" style="width:auto;">+</button>' +
+        '</div></div>';
+
+        if (this.isAdmin()) {
+          html += this.renderAdminPanel();
+        }
+
+        panel.innerHTML = html;
+      }
+
+      renderShopRow(party, type, idx, item) {
+        var self = this;
+        return (
+          '<div class="shop-item">' +
+            '<div><div class="shop-item__name">' + item.name + '</div><div class="shop-item__price">' + this.formatEuro(item.price) + ' cad.</div></div>' +
+            '<div class="counter">' +
+              '<button type="button" onclick="app.updateShopQty(' + party.id + ',\'' + type + '\',' + idx + ',-1)">−</button>' +
+              '<span>' + item.qty + '</span>' +
+              '<button type="button" onclick="app.updateShopQty(' + party.id + ',\'' + type + '\',' + idx + ',1)">+</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }
+
+      updateShopQty(partyId, type, idx, delta) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        var list = type === 'catalog' ? party.shoppingList : party.customItems;
+        list[idx].qty = Math.max(0, list[idx].qty + delta);
+        this.renderRoomShopping();
+        this.renderExplore();
+      }
+
+      addCustomItem(partyId) {
+        var name = document.getElementById('customItemName').value.trim();
+        var price = parseFloat(document.getElementById('customItemPrice').value);
+        if (!name || isNaN(price)) return alert('Inserisci nome e prezzo!');
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        party.customItems.push({ name: name, price: price, qty: 1, custom: true, addedBy: this.currentUser ? this.currentUser.username : 'guest' });
+        this.pendingCatalogItems.push({ id: 'pc' + Date.now(), name: name, price: price, submittedBy: this.currentUser ? this.currentUser.username : 'guest' });
+        this.renderRoomShopping();
+        this.showToast('Articolo aggiunto alla lista! 🛒');
+      }
+
+      renderAdminPanel() {
+        var self = this;
+        var html = '<div class="admin-panel"><h3>🔧 Dashboard Presy Admin</h3><p class="subtitle">Approva item per il catalogo globale</p>';
+        this.pendingCatalogItems.forEach(function (item, i) {
+          html += '<div class="admin-item"><span><strong>' + item.name + '</strong> · ' + self.formatEuro(item.price) + '<br><small style="color:var(--text-muted);">by @' + item.submittedBy + '</small></span>' +
+            '<div style="display:flex;gap:4px;">' +
+            '<button class="btn btn--sm" onclick="app.adminApproveItem(' + i + ')">✓</button>' +
+            '<button class="btn btn--sm btn--secondary" onclick="app.adminEditItem(' + i + ')">✎</button>' +
+            '<button class="btn btn--sm btn--secondary" onclick="app.adminDeleteItem(' + i + ')">✕</button>' +
+            '</div></div>';
+        });
+        if (!this.pendingCatalogItems.length) html += '<p style="font-size:12px;color:var(--text-muted);">Nessun item in attesa.</p>';
+        return html + '</div>';
+      }
+
+      adminApproveItem(i) {
+        var item = this.pendingCatalogItems[i];
+        this.globalCatalog.push({ id: 'cat_' + Date.now(), name: item.name, price: item.price });
+        this.pendingCatalogItems.splice(i, 1);
+        this.showToast('Item approvato nel catalogo globale ✓');
+        this.renderRoomShopping();
+      }
+
+      adminEditItem(i) {
+        var item = this.pendingCatalogItems[i];
+        var newName = prompt('Nome item:', item.name);
+        var newPrice = prompt('Prezzo:', item.price);
+        if (newName) item.name = newName;
+        if (newPrice) item.price = parseFloat(newPrice) || item.price;
+        this.renderRoomShopping();
+      }
+
+      adminDeleteItem(i) {
+        this.pendingCatalogItems.splice(i, 1);
+        this.showToast('Item eliminato');
+        this.renderRoomShopping();
+      }
+
+      renderMessages() {
+        var box = document.getElementById('chatMessagesBox');
+        box.innerHTML = '';
+        var msgs = this.messages.filter(function (m) { return m.roomId === app.currentChatRoom; });
+
+        if (!msgs.length) {
+          box.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;margin-top:40px;">Inizio bacheca. Scrivi il primo messaggio!</p>';
+          return;
+        }
+
+        var self = this;
+        msgs.forEach(function (m) {
+          var isMe = self.currentUser && m.sender === self.currentUser.username;
+          var el = document.createElement('div');
+          el.className = 'msg ' + (isMe ? 'msg--out' : 'msg--in');
+          el.innerHTML = '<div class="msg__sender">@' + m.sender + '</div><div>' + (m.text || '') + '</div>';
+          if (m.media) {
+            var mediaWrap = document.createElement('div');
+            mediaWrap.className = 'msg__media';
+            if (m.media.type.startsWith('video')) {
+              var vid = document.createElement('video');
+              vid.src = m.media.url;
+              mediaWrap.appendChild(vid);
+            } else {
+              var img = document.createElement('img');
+              img.src = m.media.url;
+              img.alt = 'media';
+              mediaWrap.appendChild(img);
+            }
+            mediaWrap.addEventListener('click', function () {
+              self.openLightbox(m.media.url, m.media.type);
+            });
+            el.appendChild(mediaWrap);
+          }
+          box.appendChild(el);
+        });
+        box.scrollTop = box.scrollHeight;
+      }
+
+      handleMediaAttach(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        var url = URL.createObjectURL(file);
+        this.pendingMedia = { type: file.type, url: url, name: file.name };
+        this.showToast('📎 ' + file.name + ' pronto per l\'invio');
+        e.target.value = '';
+      }
+
+      sendMessage() {
+        if (!this.currentUser) return this.openAuthModal(function () { app.sendMessage(); });
+        var input = document.getElementById('chatInputField');
+        var txt = input.value.trim();
+        if (!txt && !this.pendingMedia) return;
+
+        var msg = {
+          roomId: this.currentChatRoom,
+          sender: this.currentUser.username,
+          text: txt,
+          media: this.pendingMedia ? { type: this.pendingMedia.type, url: this.pendingMedia.url } : null,
+          ts: Date.now()
+        };
+
+        if (this.currentChatRoom.startsWith('dm_')) {
+          var uid = parseInt(this.currentChatRoom.replace('dm_', ''), 10);
+          if (!this.isMutualFollow(uid) && !this.acceptedDMs.includes(this.currentChatRoom)) {
+            if (!this.dmRequests.some(function (r) { return r.roomId === app.currentChatRoom; })) {
+              var u = this.users.find(function (x) { return x.id === uid; });
+              this.dmRequests.push({ roomId: this.currentChatRoom, userId: uid, username: u ? u.username : 'unknown' });
+            }
+          }
+        }
+
+        this.messages.push(msg);
+        input.value = '';
+        this.pendingMedia = null;
+        this.renderChat();
+      }
+
+      /* ─── Profile ─── */
+      renderProfile() {
+        if (!this.currentUser) {
+          document.getElementById('profUsername').textContent = 'Guest Mode';
+          document.getElementById('profMail').textContent = 'Effettua il login per tracciare metriche';
+          document.getElementById('profDisplayName').value = '';
+          document.getElementById('countFollowers').textContent = '0';
+          document.getElementById('countParticipated').textContent = '0';
+          document.getElementById('profAvatar').innerHTML = '?';
+          document.getElementById('profileHistoryContainer').innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Registrati per vedere la dashboard.</p>';
+          return;
+        }
+
+        var u = this.currentUser;
+        document.getElementById('profDisplayName').value = u.displayName || u.username;
+        document.getElementById('profUsername').textContent = '@' + u.username;
+        document.getElementById('profMail').textContent = u.email;
+        document.getElementById('countFollowers').textContent = this.myFollowers.length;
+        document.getElementById('countParticipated').textContent = u.participated;
+
+        if (u.avatar) {
+          document.getElementById('profAvatar').innerHTML = '<img src="' + u.avatar + '" alt="">';
+        } else {
+          document.getElementById('profAvatar').textContent = (u.displayName || u.username)[0].toUpperCase();
+        }
+
+        var hist = document.getElementById('profileHistoryContainer');
+        hist.innerHTML = '';
+        if (!this.showPastEventsOnFeed) {
+          hist.innerHTML = '<p style="color:var(--neon-pink);font-size:13px;text-align:center;padding:10px;">Feed nascosto al pubblico.</p>';
+          return;
+        }
+        var myParties = this.parties.filter(function (p) { return p.participants.includes(u.id); });
+        if (!myParties.length) {
+          hist.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:10px;">Nessun evento registrato.</p>';
+        } else {
+          var self = this;
+          myParties.forEach(function (p) {
+            var el = document.createElement('div');
+            el.className = 'card';
+            el.setAttribute('data-party-id', p.id);
+            el.style.cssText = 'padding:12px;margin-bottom:8px;font-size:14px;';
+            var ownerBtns = self.isOwner(p)
+              ? '<div class="party-actions-row" style="margin-top:8px;">' +
+                  '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + p.id + ')">✏️ Modifica</button>' +
+                  '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + p.id + ', true)">🗑 Elimina</button>' +
+                  '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + p.id + ')">📤 Condividi</button>' +
+                '</div>'
+              : '';
+            el.innerHTML = '<strong>' + p.name + '</strong> a ' + p.club +
+              ' <span style="float:right;color:var(--neon-purple);">' + (p.citta || '') + ' (' + p.provincia + ')</span>' +
+              '<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">' +
+                (p.data ? self.formatPartyDate(p.data) + ' · ' : '') + p.orario + ' · ' + p.geoloc +
+              '</div>' +
+              self.renderParticipantPreview(p) + ownerBtns;
+            hist.appendChild(el);
+          });
+        }
+      }
+
+      saveDisplayName() {
+        if (!this.currentUser) return;
+        this.currentUser.displayName = document.getElementById('profDisplayName').value.trim() || this.currentUser.username;
+        this.showToast('Nome aggiornato ✓');
+      }
+
+      handleProfilePhoto(e) {
+        if (!this.currentUser || !e.target.files[0]) return;
+        var reader = new FileReader();
+        var self = this;
+        reader.onload = function (ev) {
+          self.currentUser.avatar = ev.target.result;
+          self.renderProfile();
+          self.showToast('Foto profilo aggiornata 📷');
+        };
+        reader.readAsDataURL(e.target.files[0]);
+      }
+
+      openSettingsModal() {
+        if (!this.currentUser) return this.openAuthModal();
+        document.getElementById('settingsEmail').value = this.currentUser.email;
+        document.getElementById('settingsUsername').value = this.currentUser.username;
+        document.getElementById('settingsPassword').value = '';
+        this.openModal('settingsModal');
+      }
+
+      saveSettings() {
+        if (!this.currentUser) return;
+        this.currentUser.email = document.getElementById('settingsEmail').value.trim();
+        this.currentUser.username = document.getElementById('settingsUsername').value.trim();
+        var pass = document.getElementById('settingsPassword').value;
+        if (pass) this.currentUser.password = pass;
+        this.closeModal('settingsModal');
+        this.renderProfile();
+        this.showToast('Impostazioni salvate ⚙️');
+      }
+
+      openFollowersModal() {
+        if (!this.currentUser) return this.openAuthModal();
+        var container = document.getElementById('followersListContainer');
+        var sorted = this.myFollowers.slice().sort(function (a, b) { return b.followedAt - a.followedAt; });
+        var self = this;
+
+        container.innerHTML = sorted.map(function (f) {
+          var u = self.users.find(function (x) { return x.id === f.userId; });
+          if (!u) return '';
+          var av = u.avatar ? '<img src="' + u.avatar + '" alt="">' : (u.displayName || u.username)[0].toUpperCase();
+          return (
+            '<div class="follower-row' + (f.isNew ? ' follower-row--new' : '') + '">' +
+              '<div class="avatar">' + av + '</div>' +
+              '<div style="flex:1;"><div style="font-weight:700;">@' + u.username + '</div>' +
+              '<div style="font-size:12px;color:var(--text-muted);">' + (u.displayName || '') + '</div></div>' +
+              (f.isNew ? '<span class="tag-nuovo">Nuovo</span><span class="badge-plus1">+1</span>' : '') +
+            '</div>'
+          );
+        }).join('') || '<p style="color:var(--text-muted);text-align:center;">Nessun follower ancora.</p>';
+
+        this.openModal('followersModal');
+      }
+
+      toggleFeedVisibility() {
+        this.showPastEventsOnFeed = document.getElementById('profileFeedToggle').checked;
+        this.renderProfile();
+      }
+    }
+
+    const app = new PresyEngine();
+    document.addEventListener('DOMContentLoaded', function () { app.init(); });
+  </script>
+</body>
+</html>
