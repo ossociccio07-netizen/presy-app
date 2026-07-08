@@ -93,6 +93,150 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ─── profiles ─────────────────────────────────────────────
+-- Profilo utente sincronizzato con auth.users (persistenza sessione + UI reattiva)
+
+CREATE TABLE profiles (
+  id              UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
+  username        TEXT NOT NULL,
+  email           TEXT,
+  display_name    TEXT,
+  avatar_url      TEXT,
+  participated    INTEGER NOT NULL DEFAULT 0,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_profiles_username ON profiles (username);
+
+CREATE TRIGGER trg_profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY profiles_select_all ON profiles
+  FOR SELECT USING (true);
+
+CREATE POLICY profiles_insert_own ON profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+CREATE POLICY profiles_update_own ON profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+COMMENT ON TABLE profiles IS 'User profile row — source of truth for PresyEngine currentUser';
+
+-- ─── presy_parties ────────────────────────────────────────
+-- Pre-serate esplorabili (source of truth per Explore / Chat / Profilo)
+
+CREATE TABLE presy_parties (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name              TEXT NOT NULL,
+  citta             TEXT,
+  provincia         TEXT,
+  data              DATE,
+  orario            TEXT,
+  geoloc            TEXT NOT NULL,
+  club              TEXT NOT NULL,
+  ticket_link       TEXT DEFAULT '',
+  privacy           TEXT NOT NULL DEFAULT 'PUBLIC',
+  creator_username  TEXT NOT NULL,
+  host_id           UUID REFERENCES auth.users (id) ON DELETE SET NULL,
+  participants      UUID[] NOT NULL DEFAULT '{}',
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_presy_parties_privacy ON presy_parties (privacy);
+CREATE INDEX idx_presy_parties_data ON presy_parties (data DESC);
+CREATE INDEX idx_presy_parties_provincia ON presy_parties (provincia);
+
+CREATE TRIGGER trg_presy_parties_updated_at
+  BEFORE UPDATE ON presy_parties
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+ALTER TABLE presy_parties ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY presy_parties_select ON presy_parties
+  FOR SELECT USING (true);
+
+CREATE POLICY presy_parties_insert ON presy_parties
+  FOR INSERT WITH CHECK (auth.uid() = host_id);
+
+CREATE POLICY presy_parties_update ON presy_parties
+  FOR UPDATE USING (
+    auth.uid() = host_id
+    OR auth.uid() = ANY (participants)
+    OR (privacy = 'PUBLIC' AND auth.role() = 'authenticated')
+  );
+
+CREATE POLICY presy_parties_delete ON presy_parties
+  FOR DELETE USING (auth.uid() = host_id);
+
+COMMENT ON TABLE presy_parties IS 'Presy pre-party events — fetched live by renderExplore/renderChat/renderProfile';
+
+-- ─── chat_messages ────────────────────────────────────────
+
+CREATE TABLE chat_messages (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id          TEXT NOT NULL,
+  sender_username  TEXT NOT NULL,
+  sender_id        UUID REFERENCES auth.users (id) ON DELETE SET NULL,
+  text             TEXT DEFAULT '',
+  media_type       TEXT,
+  media_url        TEXT,
+  is_request       BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_chat_messages_room ON chat_messages (room_id, created_at);
+
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY chat_messages_select ON chat_messages
+  FOR SELECT USING (true);
+
+CREATE POLICY chat_messages_insert ON chat_messages
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+CREATE POLICY chat_messages_delete ON chat_messages
+  FOR DELETE USING (auth.uid() = sender_id);
+
+COMMENT ON TABLE chat_messages IS 'Chat room messages — fetched live by renderChat';
+
+-- ─── party_shopping_items ─────────────────────────────────
+-- Lista spesa collaborativa per stanza (real-time sync)
+
+CREATE TABLE party_shopping_items (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  party_id        TEXT NOT NULL,
+  catalog_id      TEXT,
+  item_name       TEXT NOT NULL,
+  unit_price      NUMERIC(10, 2) NOT NULL DEFAULT 0,
+  quantity        INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+  is_custom       BOOLEAN NOT NULL DEFAULT FALSE,
+  is_approved     BOOLEAN NOT NULL DEFAULT TRUE,
+  added_by        TEXT,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_shopping_party_id ON party_shopping_items (party_id);
+CREATE INDEX idx_shopping_pending ON party_shopping_items (is_approved) WHERE is_approved = FALSE;
+CREATE UNIQUE INDEX idx_shopping_party_catalog ON party_shopping_items (party_id, catalog_id)
+  WHERE catalog_id IS NOT NULL;
+
+CREATE TRIGGER trg_shopping_updated_at
+  BEFORE UPDATE ON party_shopping_items
+  FOR EACH ROW
+  EXECUTE FUNCTION set_updated_at();
+
+COMMENT ON TABLE party_shopping_items IS 'Collaborative shopping list rows per party room';
+
+-- Abilita Realtime in Supabase Dashboard: Database → Replication → party_shopping_items
+
 CREATE TRIGGER trg_parties_updated_at
   BEFORE UPDATE ON parties
   FOR EACH ROW

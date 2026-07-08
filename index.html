@@ -492,6 +492,59 @@
     .toggle-wrap { display: flex; align-items: center; justify-content: space-between; font-size: 13px; color: var(--text-muted); }
     .room-selector { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; -webkit-overflow-scrolling: touch; }
     .request-actions { display: flex; gap: 6px; margin-top: 8px; }
+
+    .auth-mode-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+    .auth-mode-tabs button {
+      flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border);
+      background: rgba(0,0,0,0.2); color: var(--text-muted); font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .auth-mode-tabs button.active { background: rgba(157,78,221,0.2); color: var(--neon-purple); border-color: rgba(157,78,221,0.4); }
+    .auth-link {
+      background: none; border: none; color: var(--neon-blue); font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+      padding: 8px 0; width: 100%; text-align: center;
+    }
+    .auth-link:active { opacity: 0.8; }
+    .auth-confirm-msg {
+      font-size: 13px; color: var(--neon-green); text-align: center; padding: 10px;
+      background: rgba(57,255,20,0.06); border-radius: 10px; border: 1px solid rgba(57,255,20,0.2);
+      display: none;
+    }
+    .auth-confirm-msg.show { display: block; }
+
+    .legal-compliance { display: flex; flex-direction: column; gap: 10px; margin: 4px 0 12px; }
+    .legal-checkbox-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; line-height: 1.45; color: var(--text-main);
+    }
+    .legal-checkbox-row input[type="checkbox"] {
+      width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;
+      accent-color: var(--neon-purple); cursor: pointer;
+    }
+    .legal-checkbox-row label { flex: 1; cursor: pointer; }
+    .legal-read-btn {
+      background: none; border: none; color: var(--neon-blue);
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      text-decoration: underline; text-underline-offset: 2px;
+      padding: 0; margin-left: 4px;
+    }
+    .legal-scroll-panel {
+      max-height: 160px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+      background: rgba(0,0,0,0.25); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 12px 14px; font-size: 12px;
+      line-height: 1.55; color: var(--text-muted);
+      display: none; margin-bottom: 4px;
+    }
+    .legal-scroll-panel.open { display: block; }
+    .legal-scroll-panel h4 { color: var(--text-main); font-size: 13px; margin-bottom: 8px; }
+    .legal-scroll-panel p { margin-bottom: 8px; }
+    .legal-scroll-panel ol { padding-left: 18px; margin-bottom: 8px; }
+    .legal-scroll-panel li { margin-bottom: 6px; }
+
+    .btn:disabled, .btn[disabled] {
+      opacity: 0.4; cursor: not-allowed; pointer-events: none;
+      transform: none !important;
+    }
   </style>
 </head>
 <body>
@@ -659,7 +712,7 @@
           </div>
           <div class="input-group" style="margin-bottom:8px;">
             <label>Nome Visualizzato</label>
-            <input type="text" id="profDisplayName" placeholder="Il tuo nome" onchange="app.saveDisplayName()">
+            <input type="text" id="profDisplayName" placeholder="Il tuo nome" oninput="app.saveDisplayName()">
           </div>
           <h2 id="profUsername">Guest Mode</h2>
           <p class="subtitle" id="profMail" style="margin-bottom:0;">Nessun account collegato</p>
@@ -682,6 +735,7 @@
           </div>
           <div id="profileHistoryContainer"></div>
         </div>
+        <div id="profileAdminPanel"></div>
       </section>
     </main>
 
@@ -698,13 +752,98 @@
   <div class="modal" id="authModal">
     <div class="modal-content">
       <div class="modal-handle"></div>
-      <h2>Registrazione Istantanea</h2>
-      <p class="subtitle">Inserisci i dati per sbloccare l'interazione.</p>
-      <div class="input-group"><label>Username</label><input type="text" id="authUsername" placeholder="es. andrea_adf"></div>
-      <div class="input-group"><label>Email</label><input type="email" id="authEmail" placeholder="nome@esempio.com"></div>
-      <div class="input-group"><label>Password</label><input type="password" id="authPassword" placeholder="******"></div>
-      <button class="btn" onclick="app.executeAuth()">Crea Account & Continua 🚀</button>
-      <button class="btn btn--secondary" onclick="app.closeAuthModal()">Annulla</button>
+
+      <!-- Pannello Login / Registrazione -->
+      <div id="authMainPanel">
+        <h2 id="authModalTitle">Accedi a Presy</h2>
+        <p class="subtitle" id="authModalSubtitle">Entra o crea un account per sbloccare l'interazione.</p>
+
+        <div class="auth-mode-tabs">
+          <button type="button" id="authTabLogin" class="active" onclick="app.setAuthMode('login')">Accedi</button>
+          <button type="button" id="authTabRegister" onclick="app.setAuthMode('register')">Registrati</button>
+        </div>
+
+        <div class="input-group" id="authUsernameGroup">
+          <label>Username</label>
+          <input type="text" id="authUsername" placeholder="es. andrea_adf">
+        </div>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="authEmail" placeholder="nome@esempio.com">
+        </div>
+        <div class="input-group">
+          <label>Password</label>
+          <input type="password" id="authPassword" placeholder="******">
+        </div>
+
+        <button type="button" class="auth-link" id="authForgotLink" onclick="app.showAuthView('forgot')">Password dimenticata?</button>
+
+        <div id="authComplianceBlock" class="legal-compliance" style="display:none;">
+          <div class="legal-checkbox-row">
+            <input type="checkbox" id="authAcceptTerms" onchange="app.updateAuthSubmitState()">
+            <label for="authAcceptTerms">
+              Dichiaro di avere almeno 18 anni e accetto i Termini di Servizio.
+              <button type="button" class="legal-read-btn" onclick="event.preventDefault();app.toggleLegalPanel('terms')">Leggi</button>
+            </label>
+          </div>
+          <div id="legalTermsPanel" class="legal-scroll-panel">
+            <h4>Termini di Servizio (Estratto Core)</h4>
+            <ol>
+              <li><strong>Requisiti di Età e Scopo del Servizio:</strong> Registrandoti su Presy dichiari di avere almeno 18 anni. L'applicazione è uno strumento indipendente per l'organizzazione logistica dei pre-serata e non vende, distribuisce o incentiva l'abuso di bevande alcoliche.</li>
+              <li><strong>Link di Terze Parti:</strong> Presy permette l'inserimento libero di link esterni per l'acquisto di biglietti (Dice, TicketSms, NOCT, Instagram, ecc.). Presy non è responsabile delle transazioni, dei prezzi o dei problemi derivanti da piattaforme esterne.</li>
+            </ol>
+          </div>
+
+          <div class="legal-checkbox-row">
+            <input type="checkbox" id="authAcceptPrivacy" onchange="app.updateAuthSubmitState()">
+            <label for="authAcceptPrivacy">
+              Acconsento al trattamento dei dati secondo la Privacy Policy (GDPR).
+              <button type="button" class="legal-read-btn" onclick="event.preventDefault();app.toggleLegalPanel('privacy')">Leggi</button>
+            </label>
+          </div>
+          <div id="legalPrivacyPanel" class="legal-scroll-panel">
+            <h4>Privacy Policy</h4>
+            <p><strong>Trattamento dei Dati e Analisi di Mercato Predittiva (GDPR Compliant):</strong></p>
+            <p>Presy tutela la privacy dei propri utenti in conformità con il Regolamento UE 2016/679 (GDPR). I dati personali identificativi (quali email e password) vengono crittografati e utilizzati esclusivamente per la gestione tecnica dell'account e non saranno mai ceduti o venduti a terze parti.</p>
+            <p>L'utente, registrandosi, fornisce il proprio consenso esplicito al trattamento delle informazioni relative alle preferenze di consumo e logistica della nightlife (es. città, orari di incontro, locali di destinazione selezionati, tipologia di prodotti aggiunti alla lista della spesa) esclusivamente in forma totalmente anonima e aggregata.</p>
+            <p>Tali dati anonimizzati, non riconducibili in alcun modo all'identità del singolo individuo, potranno essere elaborati e aggregati per analisi statistiche macro-temporali e tendenze di mercato utili a partner operanti nel settore del beverage e dell'intrattenimento notturno.</p>
+          </div>
+        </div>
+
+        <button type="button" class="btn" id="authSubmitBtn" onclick="app.executeAuth()">Accedi 🚀</button>
+        <button type="button" class="btn btn--secondary" onclick="app.closeAuthModal()">Annulla</button>
+      </div>
+
+      <!-- Pannello Recupero Password -->
+      <div id="authForgotPanel" style="display:none;">
+        <h2>Recupera Password</h2>
+        <p class="subtitle">Inserisci la tua email: ti invieremo un link per reimpostare la password.</p>
+        <div class="input-group">
+          <label>Email</label>
+          <input type="email" id="forgotEmail" placeholder="nome@esempio.com">
+        </div>
+        <div class="auth-confirm-msg" id="forgotConfirmMsg">✅ Link di ripristino inviato! Controlla la tua casella email.</div>
+        <button type="button" class="btn" onclick="app.sendPasswordReset()">Invia link di ripristino</button>
+        <button type="button" class="auth-link" onclick="app.showAuthView('main')">← Torna al login</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASSWORD RECOVERY MODAL (da link email Supabase) -->
+  <div class="modal" id="passwordRecoveryModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>🔐 Nuova Password</h2>
+      <p class="subtitle">Hai confermato il link di recupero. Imposta una nuova password per il tuo account.</p>
+      <div class="input-group">
+        <label>Nuova Password</label>
+        <input type="password" id="recoveryNewPassword" placeholder="Minimo 6 caratteri" minlength="6">
+      </div>
+      <div class="input-group">
+        <label>Conferma Password</label>
+        <input type="password" id="recoveryConfirmPassword" placeholder="Ripeti la password" minlength="6">
+      </div>
+      <button type="button" class="btn" onclick="app.updatePasswordRecovery()">Aggiorna Password</button>
     </div>
   </div>
 
@@ -772,11 +911,20 @@
     <div class="lightbox__content" id="lightboxContent" onclick="event.stopPropagation()"></div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    /* ─── Supabase Config — sostituisci con le tue credenziali ─── */
+    const SUPABASE_URL = 'https://cufnmxwvafxrmmxnxtti.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1Zm5teHd2YWZ4cm1teG54dHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MjExMDksImV4cCI6MjA5OTA5NzEwOX0.X9VnHVxg_byIqTSTztRb3800snROaETp5JBkuXnDhBE';
+    const AUTH_REDIRECT_URL = window.location.origin + window.location.pathname;
+
     class PresyEngine {
       constructor() {
         this.ADMIN_EMAIL = 'difalcoandrea.6@gmail.com';
         this._today = new Date().toISOString().slice(0, 10);
+        this.supabase = null;
+        this.supabaseReady = false;
+        this.authMode = 'login';
 
         this.globalCatalog = [
           { id: 'vodka', name: 'Vodka', price: 15 },
@@ -828,15 +976,16 @@
         this.editingPartyId = null;
         this.chatSearchQuery = '';
         this.initiatedDMs = ['dm_102'];
+        this.roomShoppingCache = {};
+        this.shoppingChannel = null;
+        this.adminPendingItems = [];
+        this._authListenerRegistered = false;
+        this.profileCache = {};
       }
 
       _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
         return {
-          id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants,
-          shoppingList: this.globalCatalog.map(function (c) {
-            return { catalogId: c.id, name: c.name, price: c.price, qty: id === 1 && c.id === 'gin' ? 2 : (id === 2 && c.id === 'vodka' ? 1 : 0), custom: false };
-          }),
-          customItems: []
+          id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants
         };
       }
 
@@ -847,12 +996,228 @@
       init() {
         document.getElementById('filterDate').value = this._today;
         document.getElementById('pData').value = this._today;
+        this.initSupabaseAuth();
         this.populateProvinceFilter();
         this.renderExplore();
         this.renderSocial();
         this.renderSearchHistory();
         this.renderChat();
+        if (!this.supabaseReady) {
+          this.restoreMockSession();
+          this.updateAuthUI();
+        }
+      }
+
+      initSupabaseAuth() {
+        var self = this;
+        if (!SUPABASE_URL || SUPABASE_URL.indexOf('YOUR_PROJECT') !== -1) {
+          console.warn('[Presy] Supabase non configurato — auth mock attiva.');
+          return;
+        }
+        try {
+          this.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: true
+            }
+          });
+          this.supabaseReady = true;
+
+          if (!this._authListenerRegistered) {
+            this._authListenerRegistered = true;
+            this.supabase.auth.onAuthStateChange(async function (event, session) {
+              console.info('[Presy Auth]', event);
+              if (event === 'PASSWORD_RECOVERY') {
+                self.openPasswordRecoveryModal();
+                return;
+              }
+              if (session && session.user) {
+                await self.fetchAndApplyProfile(session);
+                if (event === 'SIGNED_IN') {
+                  self.closeAuthModal();
+                  self.closeModal('passwordRecoveryModal');
+                }
+              } else {
+                self.clearSupabaseSession();
+              }
+            });
+          }
+
+          this.supabase.auth.getSession().then(async function (result) {
+            if (result.error) {
+              console.error('[Presy Auth] getSession error:', result.error);
+              self.updateAuthUI();
+              return;
+            }
+            if (result.data && result.data.session && result.data.session.user) {
+              await self.fetchAndApplyProfile(result.data.session);
+            } else {
+              self.updateAuthUI();
+            }
+          }).catch(function (err) {
+            console.error('[Presy Auth] getSession failed:', err);
+            self.updateAuthUI();
+          });
+        } catch (err) {
+          console.error('[Presy] Errore init Supabase:', err);
+        }
+      }
+
+      normalizeProfile(row, session) {
+        if (!row) return null;
+        var email = row.email || (session && session.user ? session.user.email : '');
+        return {
+          id: row.id,
+          username: row.username,
+          email: email,
+          displayName: row.display_name || row.username,
+          avatar: row.avatar_url || null,
+          participated: row.participated || 0,
+          supabaseId: row.id
+        };
+      }
+
+      async ensureProfileExists(session, usernameOverride) {
+        var user = session.user;
+        var meta = user.user_metadata || {};
+        var username = usernameOverride || meta.username || meta.display_name || user.email.split('@')[0];
+        var payload = {
+          id: user.id,
+          username: username,
+          email: user.email,
+          display_name: meta.display_name || username,
+          avatar_url: meta.avatar_url || null,
+          participated: 0
+        };
+        var result = await this.supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select().single();
+        if (result.error) {
+          console.error('[Presy] ensureProfileExists:', result.error);
+          return payload;
+        }
+        return result.data;
+      }
+
+      async fetchAndApplyProfile(session) {
+        if (!session || !session.user || !this.supabaseReady) return;
+
+        var result = await this.supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (result.error) {
+          console.error('[Presy] fetch profile:', result.error);
+        }
+
+        var profileRow = result.data;
+        if (!profileRow) {
+          profileRow = await this.ensureProfileExists(session);
+        }
+
+        if (profileRow) {
+          this.currentUser = this.normalizeProfile(profileRow, session);
+          this.updateAuthUI();
+          await this.renderProfile();
+          this.renderExplore();
+          this.renderSocial();
+          this.renderChat();
+          if (this.isAdmin()) {
+            var self = this;
+            this.loadAdminPendingItems().then(function () {
+              self.renderProfileAdminPanel();
+            });
+          }
+        }
+      }
+
+      syncSessionUI() {
         this.updateAuthUI();
+        this.renderExplore();
+        this.renderProfile();
+        this.renderSocial();
+        this.renderChat();
+        if (this.isAdmin()) {
+          var self = this;
+          this.loadAdminPendingItems().then(function () {
+            self.renderProfileAdminPanel();
+          });
+        }
+      }
+
+      async persistProfileToDb(updates) {
+        if (!this.supabaseReady || !this.currentUser) return { ok: false };
+
+        var patch = Object.assign({}, updates, {
+          updated_at: new Date().toISOString()
+        });
+
+        var result = await this.supabase
+          .from('profiles')
+          .update(patch)
+          .eq('id', this.currentUser.id)
+          .select()
+          .single();
+
+        if (result.error) {
+          console.error('[Presy] persistProfileToDb:', result.error);
+          return { ok: false, error: result.error };
+        }
+
+        var sessionResult = await this.supabase.auth.getSession();
+        this.currentUser = this.normalizeProfile(
+          result.data,
+          sessionResult.data ? sessionResult.data.session : null
+        );
+        return { ok: true, data: result.data };
+      }
+
+      restoreMockSession() {
+        try {
+          var raw = localStorage.getItem('presy_mock_user');
+          if (raw) {
+            this.currentUser = JSON.parse(raw);
+          }
+        } catch (e) {
+          localStorage.removeItem('presy_mock_user');
+        }
+      }
+
+      persistMockSession() {
+        if (this.currentUser && !this.supabaseReady) {
+          localStorage.setItem('presy_mock_user', JSON.stringify(this.currentUser));
+        }
+      }
+
+      mapSupabaseUser(session) {
+        var meta = (session.user.user_metadata || {});
+        var username = meta.username || meta.display_name || session.user.email.split('@')[0];
+        return {
+          id: session.user.id,
+          username: username,
+          email: session.user.email,
+          displayName: meta.display_name || username,
+          avatar: meta.avatar_url || null,
+          followers: 0,
+          participated: 0,
+          supabaseId: session.user.id
+        };
+      }
+
+      async applySupabaseSession(session) {
+        if (!session) return;
+        await this.fetchAndApplyProfile(session);
+        this.closeAuthModal();
+        this.closeModal('passwordRecoveryModal');
+      }
+
+      clearSupabaseSession() {
+        this.currentUser = null;
+        localStorage.removeItem('presy_mock_user');
+        this.updateAuthUI();
+        this.renderProfile();
+        this.renderExplore();
       }
 
       /* ─── Utils ─── */
@@ -864,12 +1229,341 @@
 
       formatEuro(n) { return '€' + n.toFixed(2); }
 
-      getPartyBudgetPerPerson(party) {
+      getPartyIdKey(partyId) { return String(partyId); }
+
+      qid(id) { return JSON.stringify(id); }
+
+      partyIdFromRoom(roomId) {
+        return (roomId || '').replace(/^party_/, '');
+      }
+
+      normalizePartyRow(row) {
+        return {
+          id: row.id,
+          name: row.name,
+          citta: row.citta || '',
+          provincia: row.provincia || '',
+          data: row.data ? String(row.data).slice(0, 10) : '',
+          orario: row.orario || '',
+          geoloc: row.geoloc,
+          club: row.club,
+          ticketLink: row.ticket_link || '',
+          privacy: row.privacy || 'PUBLIC',
+          creator: row.creator_username,
+          participants: row.participants || []
+        };
+      }
+
+      userInParty(party, userId) {
+        if (!party || !userId) return false;
+        return party.participants.some(function (pid) { return String(pid) === String(userId); });
+      }
+
+      normalizeMessageRow(row) {
+        return {
+          roomId: row.room_id,
+          sender: row.sender_username,
+          text: row.text || '',
+          media: row.media_url ? { type: row.media_type || 'image/jpeg', url: row.media_url } : null,
+          ts: new Date(row.created_at).getTime(),
+          isRequest: row.is_request
+        };
+      }
+
+      async fetchPartiesFromSupabase() {
+        if (!this.supabaseReady) return this.parties;
+        try {
+          var result = await this.supabase
+            .from('presy_parties')
+            .select('*')
+            .order('created_at', { ascending: false });
+          if (result.error) throw result.error;
+          this.parties = (result.data || []).map(this.normalizePartyRow.bind(this));
+          await this.hydrateParticipantProfiles();
+        } catch (err) {
+          console.error('[Presy] fetchPartiesFromSupabase:', err);
+        }
+        return this.parties;
+      }
+
+      async fetchMessagesFromSupabase(roomId) {
+        if (!this.supabaseReady) return this.messages;
+        try {
+          var query = this.supabase
+            .from('chat_messages')
+            .select('*')
+            .order('created_at', { ascending: true });
+          if (roomId) query = query.eq('room_id', roomId);
+          var result = await query;
+          if (result.error) throw result.error;
+          var mapped = (result.data || []).map(this.normalizeMessageRow.bind(this));
+          if (roomId) {
+            this.messages = this.messages.filter(function (m) { return m.roomId !== roomId; }).concat(mapped);
+          } else {
+            this.messages = mapped;
+          }
+        } catch (err) {
+          console.error('[Presy] fetchMessagesFromSupabase:', err);
+        }
+        return this.messages;
+      }
+
+      async hydrateParticipantProfiles() {
+        if (!this.supabaseReady) return;
+        var ids = {};
+        this.parties.forEach(function (p) {
+          (p.participants || []).forEach(function (id) { ids[id] = true; });
+        });
+        var idList = Object.keys(ids);
+        if (!idList.length) return;
+        var result = await this.supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url')
+          .in('id', idList);
+        if (result.error) {
+          console.error('[Presy] hydrateParticipantProfiles:', result.error);
+          return;
+        }
+        var self = this;
+        (result.data || []).forEach(function (row) {
+          self.profileCache[row.id] = {
+            id: row.id,
+            username: row.username,
+            displayName: row.display_name || row.username,
+            avatar: row.avatar_url || null
+          };
+        });
+      }
+
+      async fetchFreshProfile() {
+        if (!this.supabaseReady || !this.currentUser) return this.currentUser;
+        var result = await this.supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', this.currentUser.id)
+          .single();
+        if (result.error) {
+          console.error('[Presy] fetchFreshProfile:', result.error);
+          return this.currentUser;
+        }
+        var sessionResult = await this.supabase.auth.getSession();
+        this.currentUser = this.normalizeProfile(
+          result.data,
+          sessionResult.data ? sessionResult.data.session : null
+        );
+        return this.currentUser;
+      }
+
+      getRoomShoppingRows(partyId) {
+        return this.roomShoppingCache[this.getPartyIdKey(partyId)] || [];
+      }
+
+      getCatalogQty(partyId, catalogId) {
+        var row = this.getRoomShoppingRows(partyId).find(function (r) {
+          return r.catalog_id === catalogId && !r.is_custom;
+        });
+        return row ? row.quantity : 0;
+      }
+
+      calcShoppingTotal(partyId) {
         var total = 0;
-        party.shoppingList.forEach(function (i) { total += i.price * i.qty; });
-        (party.customItems || []).forEach(function (i) { total += i.price * i.qty; });
+        this.getRoomShoppingRows(partyId).forEach(function (r) {
+          if (r.quantity > 0) {
+            total += parseFloat(r.unit_price) * r.quantity;
+          }
+        });
+        return total;
+      }
+
+      getPartyBudgetPerPerson(party) {
+        var total = this.calcShoppingTotal(party.id);
         var n = Math.max(party.participants.length, 1);
         return total / n;
+      }
+
+      /* ─── Shopping List — Supabase Persistence ─── */
+
+      async loadShoppingItems(partyId) {
+        var key = this.getPartyIdKey(partyId);
+        if (!this.supabaseReady) {
+          this.ensureLocalShoppingFallback(partyId);
+          this.renderRoomShopping();
+          this.renderExplore();
+          return;
+        }
+        try {
+          var result = await this.supabase
+            .from('party_shopping_items')
+            .select('*')
+            .eq('party_id', key)
+            .order('created_at', { ascending: true });
+          if (result.error) throw result.error;
+          this.roomShoppingCache[key] = result.data || [];
+          this.subscribeShoppingRealtime(partyId);
+          if (this.isAdmin()) await this.loadAdminPendingItems();
+          this.renderRoomShopping();
+          this.renderExplore();
+          if (this.isAdmin()) this.renderProfileAdminPanel();
+        } catch (err) {
+          console.error('[Presy Shopping] load error:', err);
+          this.ensureLocalShoppingFallback(partyId);
+          this.renderRoomShopping();
+        }
+      }
+
+      ensureLocalShoppingFallback(partyId) {
+        var key = this.getPartyIdKey(partyId);
+        if (this.roomShoppingCache[key]) return;
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+        if (!party.shoppingList) {
+          party.shoppingList = this.globalCatalog.map(function (c) {
+            return { catalogId: c.id, name: c.name, price: c.price, qty: 0, custom: false };
+          });
+          party.customItems = party.customItems || [];
+        }
+        var rows = [];
+        party.shoppingList.forEach(function (i) {
+          if (i.qty > 0) {
+            rows.push({
+              id: 'local_' + i.catalogId, party_id: key, catalog_id: i.catalogId,
+              item_name: i.name, unit_price: i.price, quantity: i.qty,
+              is_custom: false, is_approved: true
+            });
+          }
+        });
+        (party.customItems || []).forEach(function (i, idx) {
+          rows.push({
+            id: 'local_custom_' + idx, party_id: key, catalog_id: null,
+            item_name: i.name, unit_price: i.price, quantity: i.qty,
+            is_custom: true, is_approved: false, added_by: i.addedBy
+          });
+        });
+        this.roomShoppingCache[key] = rows;
+      }
+
+      unsubscribeShoppingRealtime() {
+        if (this.shoppingChannel && this.supabase) {
+          this.supabase.removeChannel(this.shoppingChannel);
+          this.shoppingChannel = null;
+        }
+      }
+
+      subscribeShoppingRealtime(partyId) {
+        if (!this.supabaseReady) return;
+        var self = this;
+        var key = this.getPartyIdKey(partyId);
+        this.unsubscribeShoppingRealtime();
+        this.shoppingChannel = this.supabase
+          .channel('shopping-room-' + key)
+          .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'party_shopping_items',
+            filter: 'party_id=eq.' + key
+          }, function () {
+            self.loadShoppingItems(partyId);
+          })
+          .subscribe();
+      }
+
+      async syncCatalogQuantity(partyId, catalogId, newQty) {
+        var key = this.getPartyIdKey(partyId);
+        var catalog = this.globalCatalog.find(function (c) { return c.id === catalogId; });
+        if (!catalog) return;
+
+        if (!this.supabaseReady) {
+          this.syncCatalogQuantityLocal(partyId, catalogId, newQty);
+          return;
+        }
+
+        try {
+          if (newQty <= 0) {
+            var del = await this.supabase.from('party_shopping_items').delete()
+              .eq('party_id', key).eq('catalog_id', catalogId);
+            if (del.error) throw del.error;
+          } else {
+            var existing = await this.supabase.from('party_shopping_items').select('id')
+              .eq('party_id', key).eq('catalog_id', catalogId).maybeSingle();
+            if (existing.error) throw existing.error;
+            if (existing.data) {
+              var upd = await this.supabase.from('party_shopping_items')
+                .update({ quantity: newQty, updated_at: new Date().toISOString() })
+                .eq('id', existing.data.id);
+              if (upd.error) throw upd.error;
+            } else {
+              var ins = await this.supabase.from('party_shopping_items').insert({
+                party_id: key,
+                catalog_id: catalogId,
+                item_name: catalog.name,
+                unit_price: catalog.price,
+                quantity: newQty,
+                is_custom: false,
+                is_approved: true,
+                added_by: this.currentUser ? this.currentUser.username : 'guest'
+              });
+              if (ins.error) throw ins.error;
+            }
+          }
+          await this.loadShoppingItems(partyId);
+        } catch (err) {
+          console.error('[Presy Shopping] sync catalog:', err);
+          this.showToast('Errore sync lista spesa');
+        }
+      }
+
+      syncCatalogQuantityLocal(partyId, catalogId, newQty) {
+        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (!party) return;
+        this.ensureLocalShoppingFallback(partyId);
+        var item = party.shoppingList.find(function (i) { return i.catalogId === catalogId; });
+        if (item) item.qty = Math.max(0, newQty);
+        var key = this.getPartyIdKey(partyId);
+        this.roomShoppingCache[key] = this.roomShoppingCache[key].filter(function (r) {
+          return !(r.catalog_id === catalogId && !r.is_custom);
+        });
+        if (newQty > 0) {
+          var cat = this.globalCatalog.find(function (c) { return c.id === catalogId; });
+          this.roomShoppingCache[key].push({
+            id: 'local_' + catalogId, party_id: key, catalog_id: catalogId,
+            item_name: cat.name, unit_price: cat.price, quantity: newQty,
+            is_custom: false, is_approved: true
+          });
+        }
+        this.renderRoomShopping();
+        this.renderExplore();
+      }
+
+      async syncCustomQuantity(partyId, dbItemId, newQty) {
+        if (!this.supabaseReady) return;
+        try {
+          if (newQty <= 0) {
+            var del = await this.supabase.from('party_shopping_items').delete().eq('id', dbItemId);
+            if (del.error) throw del.error;
+          } else {
+            var upd = await this.supabase.from('party_shopping_items')
+              .update({ quantity: newQty }).eq('id', dbItemId);
+            if (upd.error) throw upd.error;
+          }
+          await this.loadShoppingItems(partyId);
+        } catch (err) {
+          console.error('[Presy Shopping] sync custom:', err);
+        }
+      }
+
+      async loadAdminPendingItems() {
+        if (!this.supabaseReady || !this.isAdmin()) {
+          this.adminPendingItems = this.pendingCatalogItems.map(function (i, idx) {
+            return { id: 'local_' + idx, item_name: i.name, unit_price: i.price, added_by: i.submittedBy, party_id: '—', is_custom: true, is_approved: false };
+          });
+          return;
+        }
+        var result = await this.supabase.from('party_shopping_items')
+          .select('*')
+          .eq('is_custom', true)
+          .eq('is_approved', false)
+          .order('created_at', { ascending: false });
+        if (!result.error) this.adminPendingItems = result.data || [];
       }
 
       getActiveProvinces() {
@@ -899,7 +1593,7 @@
       }
 
       openGoogleMaps(partyId) {
-        var party = this.parties.find(function (p) { return p.id === partyId; });
+        var party = this.parties.find(function (p) { return String(p.id) === String(partyId); });
         if (!party) return;
         var query = encodeURIComponent(party.geoloc + ' ' + (party.citta || ''));
         window.open('https://www.google.com/maps/search/?api=1&query=' + query, '_blank', 'noopener,noreferrer');
@@ -911,6 +1605,7 @@
 
       getUserById(userId) {
         if (this.currentUser && this.currentUser.id === userId) return this.currentUser;
+        if (this.profileCache && this.profileCache[userId]) return this.profileCache[userId];
         return this.users.find(function (u) { return u.id === userId; });
       }
 
@@ -945,7 +1640,8 @@
       }
 
       async shareParty(partyId) {
-        var party = this.parties.find(function (p) { return p.id === partyId; });
+        if (this.supabaseReady) await this.fetchPartiesFromSupabase();
+        var party = this.parties.find(function (p) { return String(p.id) === String(partyId); });
         if (!party) return;
         var text = this.buildShareText(party);
         var shareData = {
@@ -980,14 +1676,16 @@
       }
 
       renderOwnerActions(partyId) {
+        var q = this.qid(partyId);
         return '<div class="party-actions-row">' +
-          '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + partyId + ')">✏️ Modifica</button>' +
-          '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + partyId + ')">🗑 Elimina</button>' +
+          '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + q + ')">✏️ Modifica</button>' +
+          '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + q + ')">🗑 Elimina</button>' +
         '</div>';
       }
 
-      deleteParty(partyId, fromProfile) {
+      async deleteParty(partyId, fromProfile) {
         if (!this.currentUser) return;
+        await this.fetchPartiesFromSupabase();
         var party = this.parties.find(function (p) { return p.id === partyId; });
         if (!party || !this.isOwner(party)) return;
         if (!confirm('Eliminare "' + party.name + '"?')) return;
@@ -995,24 +1693,37 @@
         var cardEl = document.querySelector('[data-party-id="' + partyId + '"]');
         var self = this;
 
-        function removeFromState() {
-          self.parties = self.parties.filter(function (p) { return p.id !== partyId; });
+        async function removeFromState() {
+          if (self.supabaseReady) {
+            var del = await self.supabase.from('presy_parties').delete().eq('id', partyId);
+            if (del.error) {
+              alert(del.error.message || 'Errore eliminazione pre-serata.');
+              return;
+            }
+            await self.supabase.from('chat_messages').delete().eq('room_id', 'party_' + partyId);
+          } else {
+            self.parties = self.parties.filter(function (p) { return p.id !== partyId; });
+          }
+          await self.fetchPartiesFromSupabase();
+          await self.fetchMessagesFromSupabase();
           if (self.currentChatRoom === 'party_' + partyId) {
-            var next = self.parties.find(function (p) { return p.participants.includes(self.currentUser.id); });
+            var next = self.parties.find(function (p) {
+              return self.currentUser && self.userInParty(p, self.currentUser.id);
+            });
             self.currentChatRoom = next ? 'party_' + next.id : '';
           }
-          self.messages = self.messages.filter(function (m) { return m.roomId !== 'party_' + partyId; });
           self.populateProvinceFilter();
           self.showToast('Pre-serata eliminato 🗑');
-          if (fromProfile) self.renderProfile();
-          else self.renderExplore();
+          if (fromProfile) await self.renderProfile();
+          else await self.renderExplore();
+          await self.renderChat();
         }
 
         if (cardEl) {
           cardEl.classList.add('party-card--removing');
-          setTimeout(removeFromState, 400);
+          setTimeout(function () { removeFromState(); }, 400);
         } else {
-          removeFromState();
+          await removeFromState();
         }
       }
 
@@ -1032,25 +1743,52 @@
         this.openModal('editPartyModal');
       }
 
-      saveEditParty() {
+      async saveEditParty() {
         var party = this.parties.find(function (p) { return p.id === this.editingPartyId; }, this);
         if (!party) return;
-        party.name = document.getElementById('editPName').value.trim() || party.name;
-        party.citta = document.getElementById('editPCitta').value.trim();
-        party.provincia = this._normalizeProvincia(document.getElementById('editPProvincia').value);
-        party.data = document.getElementById('editPData').value;
-        party.orario = document.getElementById('editPOrario').value;
-        party.geoloc = document.getElementById('editPGeoloc').value.trim();
-        party.club = document.getElementById('editPClub').value.trim();
-        party.privacy = document.getElementById('editPPrivacy').value;
-        party.ticketLink = document.getElementById('editPTicketLink').value.trim();
+        var payload = {
+          name: document.getElementById('editPName').value.trim() || party.name,
+          citta: document.getElementById('editPCitta').value.trim(),
+          provincia: this._normalizeProvincia(document.getElementById('editPProvincia').value),
+          data: document.getElementById('editPData').value,
+          orario: document.getElementById('editPOrario').value,
+          geoloc: document.getElementById('editPGeoloc').value.trim(),
+          club: document.getElementById('editPClub').value.trim(),
+          privacy: document.getElementById('editPPrivacy').value,
+          ticket_link: document.getElementById('editPTicketLink').value.trim()
+        };
+
+        if (this.supabaseReady) {
+          var result = await this.supabase
+            .from('presy_parties')
+            .update(payload)
+            .eq('id', party.id)
+            .select()
+            .single();
+          if (result.error) {
+            alert(result.error.message || 'Errore aggiornamento pre-serata.');
+            return;
+          }
+        } else {
+          party.name = payload.name;
+          party.citta = payload.citta;
+          party.provincia = payload.provincia;
+          party.data = payload.data;
+          party.orario = payload.orario;
+          party.geoloc = payload.geoloc;
+          party.club = payload.club;
+          party.privacy = payload.privacy;
+          party.ticketLink = payload.ticket_link;
+        }
+
         this.closeModal('editPartyModal');
         this.editingPartyId = null;
+        await this.fetchPartiesFromSupabase();
         this.populateProvinceFilter();
         this.showToast('Pre-serata aggiornato ✓');
-        this.renderExplore();
-        this.renderProfile();
-        if (this.currentChatRoom === 'party_' + party.id) this.renderChat();
+        await this.renderExplore();
+        await this.renderProfile();
+        if (this.currentChatRoom === 'party_' + party.id) await this.renderChat();
       }
 
       isAdmin() {
@@ -1090,23 +1828,209 @@
       /* ─── Auth ─── */
       openAuthModal(cb) {
         this.authCallback = cb || null;
+        this.showAuthView('main');
+        this.setAuthMode('login');
+        this.resetComplianceCheckboxes();
         this.openModal('authModal');
       }
-      closeAuthModal() { this.closeModal('authModal'); }
 
-      executeAuth() {
+      closeAuthModal() {
+        this.closeModal('authModal');
+        this.showAuthView('main');
+        this.resetComplianceCheckboxes();
+      }
+
+      resetComplianceCheckboxes() {
+        var terms = document.getElementById('authAcceptTerms');
+        var privacy = document.getElementById('authAcceptPrivacy');
+        if (terms) terms.checked = false;
+        if (privacy) privacy.checked = false;
+        document.getElementById('legalTermsPanel').classList.remove('open');
+        document.getElementById('legalPrivacyPanel').classList.remove('open');
+        this.updateAuthSubmitState();
+      }
+
+      toggleLegalPanel(which) {
+        var termsPanel = document.getElementById('legalTermsPanel');
+        var privacyPanel = document.getElementById('legalPrivacyPanel');
+        if (which === 'terms') {
+          termsPanel.classList.toggle('open');
+          privacyPanel.classList.remove('open');
+        } else {
+          privacyPanel.classList.toggle('open');
+          termsPanel.classList.remove('open');
+        }
+      }
+
+      updateAuthSubmitState() {
+        var btn = document.getElementById('authSubmitBtn');
+        if (this.authMode === 'login') {
+          btn.disabled = false;
+          return;
+        }
+        var termsOk = document.getElementById('authAcceptTerms').checked;
+        var privacyOk = document.getElementById('authAcceptPrivacy').checked;
+        btn.disabled = !(termsOk && privacyOk);
+      }
+
+      setAuthMode(mode) {
+        this.authMode = mode;
+        var isLogin = mode === 'login';
+        document.getElementById('authTabLogin').classList.toggle('active', isLogin);
+        document.getElementById('authTabRegister').classList.toggle('active', !isLogin);
+        document.getElementById('authUsernameGroup').style.display = isLogin ? 'none' : 'flex';
+        document.getElementById('authComplianceBlock').style.display = isLogin ? 'none' : 'flex';
+        document.getElementById('authModalTitle').textContent = isLogin ? 'Accedi a Presy' : 'Crea il tuo account';
+        document.getElementById('authModalSubtitle').textContent = isLogin
+          ? 'Bentornato! Inserisci email e password.'
+          : 'Inserisci i dati per sbloccare l\'interazione.';
+        document.getElementById('authSubmitBtn').textContent = isLogin ? 'Accedi 🚀' : 'Crea Account & Continua 🚀';
+        document.getElementById('authForgotLink').style.display = isLogin ? 'block' : 'none';
+        if (!isLogin) {
+          document.getElementById('authAcceptTerms').checked = false;
+          document.getElementById('authAcceptPrivacy').checked = false;
+        }
+        this.updateAuthSubmitState();
+      }
+
+      showAuthView(view) {
+        var isForgot = view === 'forgot';
+        document.getElementById('authMainPanel').style.display = isForgot ? 'none' : 'block';
+        document.getElementById('authForgotPanel').style.display = isForgot ? 'block' : 'none';
+        document.getElementById('forgotConfirmMsg').classList.remove('show');
+        if (isForgot) {
+          var email = document.getElementById('authEmail').value.trim();
+          if (email) document.getElementById('forgotEmail').value = email;
+        }
+      }
+
+      openPasswordRecoveryModal() {
+        document.getElementById('recoveryNewPassword').value = '';
+        document.getElementById('recoveryConfirmPassword').value = '';
+        this.openModal('passwordRecoveryModal');
+      }
+
+      async sendPasswordReset() {
+        var email = document.getElementById('forgotEmail').value.trim();
+        if (!email) return alert('Inserisci la tua email.');
+
+        if (!this.supabaseReady) {
+          return alert('Supabase non configurato. Imposta SUPABASE_URL e SUPABASE_ANON_KEY.');
+        }
+
+        try {
+          var result = await this.supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: AUTH_REDIRECT_URL
+          });
+          if (result.error) throw result.error;
+          document.getElementById('forgotConfirmMsg').classList.add('show');
+          this.showToast('Link di ripristino inviato! Controlla la tua email 📧');
+        } catch (err) {
+          alert(err.message || 'Errore durante l\'invio del link di ripristino.');
+        }
+      }
+
+      async updatePasswordRecovery() {
+        var newPass = document.getElementById('recoveryNewPassword').value;
+        var confirmPass = document.getElementById('recoveryConfirmPassword').value;
+
+        if (!newPass || newPass.length < 6) {
+          return alert('La password deve avere almeno 6 caratteri.');
+        }
+        if (newPass !== confirmPass) {
+          return alert('Le password non coincidono.');
+        }
+        if (!this.supabaseReady) {
+          return alert('Supabase non configurato.');
+        }
+
+        try {
+          var result = await this.supabase.auth.updateUser({ password: newPass });
+          if (result.error) throw result.error;
+          this.closeModal('passwordRecoveryModal');
+          this.showToast('Password aggiornata con successo! 🔐');
+          if (result.data && result.data.user) {
+            var sessionResult = await this.supabase.auth.getSession();
+            if (sessionResult.data && sessionResult.data.session) {
+              await this.applySupabaseSession(sessionResult.data.session);
+            }
+          }
+        } catch (err) {
+          alert(err.message || 'Errore durante l\'aggiornamento della password.');
+        }
+      }
+
+      async executeAuth() {
         var user = document.getElementById('authUsername').value.trim();
         var email = document.getElementById('authEmail').value.trim();
         var pass = document.getElementById('authPassword').value;
-        if (!user || !email) return alert('Inserisci i dati richiesti!');
+
+        if (!email || !pass) return alert('Inserisci email e password.');
+        if (this.authMode === 'register' && !user) return alert('Inserisci uno username.');
+
+        if (this.authMode === 'register') {
+          var termsAccepted = document.getElementById('authAcceptTerms').checked;
+          var privacyAccepted = document.getElementById('authAcceptPrivacy').checked;
+          if (!termsAccepted || !privacyAccepted) {
+            alert('⚠️ Devi accettare i Termini di Servizio e la Privacy Policy per creare un account.');
+            this.updateAuthSubmitState();
+            return;
+          }
+        }
+
+        if (this.supabaseReady) {
+          try {
+            var result;
+            if (this.authMode === 'login') {
+              result = await this.supabase.auth.signInWithPassword({ email: email, password: pass });
+            } else {
+              result = await this.supabase.auth.signUp({
+                email: email,
+                password: pass,
+                options: {
+                  data: { username: user, display_name: user },
+                  emailRedirectTo: AUTH_REDIRECT_URL
+                }
+              });
+            }
+            if (result.error) throw result.error;
+
+            if (this.authMode === 'register' && result.data && result.data.user) {
+              await this.ensureProfileExists({ user: result.data.user }, user);
+            }
+
+            if (result.data && result.data.session) {
+              await this.fetchAndApplyProfile(result.data.session);
+              this.closeAuthModal();
+            } else if (this.authMode === 'register') {
+              this.showToast('Controlla la email per confermare l\'account 📧');
+              this.closeAuthModal();
+            }
+
+            if (this.authCallback) { this.authCallback(); this.authCallback = null; }
+            return;
+          } catch (err) {
+            return alert(err.message || 'Errore di autenticazione.');
+          }
+        }
+
+        /* Fallback mock se Supabase non configurato */
+        if (this.authMode === 'register') {
+          var termsOk = document.getElementById('authAcceptTerms').checked;
+          var privacyOk = document.getElementById('authAcceptPrivacy').checked;
+          if (!termsOk || !privacyOk) {
+            alert('⚠️ Devi accettare i Termini di Servizio e la Privacy Policy per creare un account.');
+            return;
+          }
+        }
         this.currentUser = {
-          id: Date.now(), username: user, email: email, password: pass,
-          displayName: user, avatar: null, followers: 3, participated: 0
+          id: Date.now(), username: user || email.split('@')[0], email: email, password: pass,
+          displayName: user || email.split('@')[0], avatar: null, followers: 3, participated: 0
         };
+        this.persistMockSession();
         this.closeAuthModal();
-        this.updateAuthUI();
+        this.syncSessionUI();
         if (this.authCallback) { this.authCallback(); this.authCallback = null; }
-        this.renderExplore();
       }
 
       updateAuthUI() {
@@ -1158,7 +2082,12 @@
         }).map(function (p) { return { party: p }; });
       }
 
-      renderExplore() {
+      async renderExplore() {
+        if (this.supabaseReady) {
+          await this.fetchPartiesFromSupabase();
+          this.populateProvinceFilter();
+        }
+
         var container = document.getElementById('exploreListContainer');
         container.innerHTML = '';
         var fProv = document.getElementById('filterProvincia').value;
@@ -1172,17 +2101,18 @@
         var self = this;
         results.forEach(function (item) {
           var p = item.party;
+          var q = self.qid(p.id);
           var card = document.createElement('div');
           card.className = 'card party-card';
           card.setAttribute('data-party-id', p.id);
           var perPerson = self.getPartyBudgetPerPerson(p);
-          var isJoined = self.currentUser && p.participants.includes(self.currentUser.id);
+          var isJoined = self.currentUser && self.userInParty(p, self.currentUser.id);
           var isOwner = self.isOwner(p);
           var dateLabel = p.data ? self.formatPartyDate(p.data) : '';
 
           card.innerHTML =
             '<div class="party-card__meta">' +
-              '<span class="location-link" onclick="app.openGoogleMaps(' + p.id + ')" role="button" tabindex="0">' +
+              '<span class="location-link" onclick="app.openGoogleMaps(' + q + ')" role="button" tabindex="0">' +
                 '📍 ' + p.geoloc + ', ' + (p.citta || '') + ' (' + p.provincia + ')' +
               '</span>' +
               '<span class="pill">~' + self.formatEuro(perPerson) + '/testa</span>' +
@@ -1195,9 +2125,9 @@
             '</div>' +
             self.renderParticipantPreview(p) +
             '<div class="party-actions">' +
-              '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + p.id + ')">📤 Condividi</button>' +
+              '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + q + ')">📤 Condividi</button>' +
               (p.ticketLink ? '<a href="' + p.ticketLink + '" target="_blank" rel="noopener" class="btn btn--secondary btn--sm">🎫 Ticket</a>' : '') +
-              '<button type="button" class="btn btn--sm ' + (isJoined ? 'btn--secondary' : '') + '" onclick="app.joinParty(' + p.id + ')">' +
+              '<button type="button" class="btn btn--sm ' + (isJoined ? 'btn--secondary' : '') + '" onclick="app.joinParty(' + q + ')">' +
                 (isJoined ? 'Sei iscritto ✓' : 'Partecipa') +
               '</button>' +
             '</div>' +
@@ -1227,23 +2157,43 @@
         );
       }
 
-      joinParty(partyId) {
+      async joinParty(partyId) {
         if (!this.currentUser) return this.openAuthModal(function () { app.joinParty(partyId); });
+        await this.fetchPartiesFromSupabase();
         var party = this.parties.find(function (p) { return p.id === partyId; });
-        if (!party.participants.includes(this.currentUser.id)) {
-          party.participants.push(this.currentUser.id);
-          this.currentUser.participated++;
+        if (!party) return;
+        if (!this.userInParty(party, this.currentUser.id)) {
+          var newParticipants = party.participants.concat([this.currentUser.id]);
+          if (this.supabaseReady) {
+            var upd = await this.supabase
+              .from('presy_parties')
+              .update({ participants: newParticipants })
+              .eq('id', partyId)
+              .select()
+              .single();
+            if (upd.error) {
+              alert(upd.error.message || 'Errore iscrizione al pre-serata.');
+              return;
+            }
+            await this.persistProfileToDb({
+              participated: (this.currentUser.participated || 0) + 1
+            });
+            this.updateAuthUI();
+            await this.renderProfile();
+          } else {
+            party.participants.push(this.currentUser.id);
+            this.currentUser.participated++;
+            this.persistMockSession();
+          }
           this.showToast('Sei nella crew di ' + party.name + '! 🎉');
-          this.currentChatRoom = 'party_' + party.id;
-          this.switchTab('chat');
-          this.renderExplore();
-        } else {
-          this.currentChatRoom = 'party_' + party.id;
-          this.switchTab('chat');
         }
+        this.currentChatRoom = 'party_' + party.id;
+        this.switchTab('chat');
+        this.loadShoppingItems(partyId);
+        await this.renderExplore();
       }
 
-      handleCreateParty() {
+      async handleCreateParty() {
         if (!this.currentUser) return this.openAuthModal(function () { app.handleCreateParty(); });
         var name = document.getElementById('pName').value.trim();
         var citta = document.getElementById('pCitta').value.trim();
@@ -1258,12 +2208,40 @@
           return alert('Inserisci Vibe, Città, Provincia, Luogo e Discoteca!');
         }
 
-        var newParty = this._makeParty(
-          this.parties.length + 1, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy,
-          this.currentUser.username, [this.currentUser.id]
-        );
-        this.parties.unshift(newParty);
-        this.currentUser.participated++;
+        if (this.supabaseReady) {
+          var result = await this.supabase.from('presy_parties').insert({
+            name: name,
+            citta: citta,
+            provincia: provincia,
+            data: data,
+            orario: orario,
+            geoloc: geoloc,
+            club: club,
+            ticket_link: ticketLink,
+            privacy: privacy,
+            creator_username: this.currentUser.username,
+            host_id: this.currentUser.id,
+            participants: [this.currentUser.id]
+          }).select().single();
+          if (result.error) {
+            alert(result.error.message || 'Errore creazione pre-serata.');
+            return;
+          }
+          await this.persistProfileToDb({
+            participated: (this.currentUser.participated || 0) + 1
+          });
+          this.updateAuthUI();
+          await this.renderProfile();
+        } else {
+          var newParty = this._makeParty(
+            this.parties.length + 1, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy,
+            this.currentUser.username, [this.currentUser.id]
+          );
+          this.parties.unshift(newParty);
+          this.currentUser.participated++;
+          this.persistMockSession();
+        }
+
         this.showToast('Pre-Serata lanciato! 🚀');
         document.getElementById('pName').value = '';
         document.getElementById('pCitta').value = '';
@@ -1272,9 +2250,10 @@
         document.getElementById('pGeoloc').value = '';
         document.getElementById('pClub').value = '';
         document.getElementById('pTicketLink').value = '';
+        await this.fetchPartiesFromSupabase();
         this.populateProvinceFilter();
         this.switchTab('explore');
-        this.renderExplore();
+        await this.renderExplore();
       }
 
       /* ─── Amici / Social ─── */
@@ -1451,7 +2430,7 @@
         var html = '';
 
         this.parties.filter(function (p) {
-          return !self.currentUser || p.participants.includes(self.currentUser.id);
+          return !self.currentUser || self.userInParty(p, self.currentUser.id);
         }).filter(function (p) {
           return p.name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q) || p.geoloc.toLowerCase().includes(q);
         }).forEach(function (p) {
@@ -1482,6 +2461,7 @@
         document.getElementById('chatRoomSubtitle').textContent = 'Incontro a ' + party.geoloc + ' alle ' + party.orario;
         this.chatSection = 'chat';
         this.renderChatSearchResults();
+        this.loadShoppingItems(partyId);
         this.renderChat();
       }
 
@@ -1526,7 +2506,12 @@
         this.renderChat();
       }
 
-      renderChat() {
+      async renderChat() {
+        if (this.supabaseReady) {
+          await this.fetchPartiesFromSupabase();
+          await this.fetchMessagesFromSupabase(this.currentChatRoom);
+        }
+
         var badge = document.getElementById('requestsBadge');
         if (this.dmRequests.length > 0) {
           badge.style.display = 'inline';
@@ -1546,7 +2531,7 @@
         var q = this.chatSearchQuery;
 
         this.parties.filter(function (p) {
-          return (!self.currentUser || p.participants.includes(self.currentUser.id)) &&
+          return (!self.currentUser || self.userInParty(p, self.currentUser.id)) &&
             (!q || p.name.toLowerCase().includes(q) || p.club.toLowerCase().includes(q));
         }).forEach(function (p) {
           var btn = document.createElement('button');
@@ -1581,6 +2566,12 @@
 
         this.renderRoomShopping();
         this.renderMessages();
+        if (this.currentChatRoom.startsWith('party_')) {
+          var pid = this.partyIdFromRoom(this.currentChatRoom);
+          if (!this.getRoomShoppingRows(pid).length && !this.roomShoppingCache[this.getPartyIdKey(pid)]) {
+            this.loadShoppingItems(pid);
+          }
+        }
       }
 
       renderRequestsPanel() {
@@ -1614,34 +2605,39 @@
       renderRoomShopping() {
         var panel = document.getElementById('roomShoppingPanel');
         panel.innerHTML = '';
-        if (!this.currentChatRoom.startsWith('party_')) return;
+        if (!this.currentChatRoom.startsWith('party_')) {
+          this.unsubscribeShoppingRealtime();
+          return;
+        }
 
-        var partyId = parseInt(this.currentChatRoom.replace('party_', ''), 10);
-        var party = this.parties.find(function (p) { return p.id === partyId; });
+        var partyId = this.partyIdFromRoom(this.currentChatRoom);
+        var party = this.parties.find(function (p) { return p.id === partyId || String(p.id) === String(partyId); });
         if (!party) return;
 
         var self = this;
-        var total = 0;
-        party.shoppingList.forEach(function (i) { total += i.price * i.qty; });
-        (party.customItems || []).forEach(function (i) { total += i.price * i.qty; });
+        var total = this.calcShoppingTotal(partyId);
         var perPerson = total / Math.max(party.participants.length, 1);
+        var rows = this.getRoomShoppingRows(partyId);
+        var customRows = rows.filter(function (r) { return r.is_custom && r.quantity > 0; });
 
         var html = '<div class="card shop-list" style="padding:14px;margin-bottom:10px;">' +
           '<h3>🛒 Lista Spesa Collaborativa</h3>' +
           '<p class="subtitle" style="margin-bottom:10px;">Budget live · ' + this.formatEuro(perPerson) + ' a testa</p>';
 
-        party.shoppingList.forEach(function (item, idx) {
-          html += self.renderShopRow(party, 'catalog', idx, item);
+        this.globalCatalog.forEach(function (cat) {
+          var qty = self.getCatalogQty(partyId, cat.id);
+          html += self.renderShopRowCatalog(partyId, cat, qty);
         });
-        (party.customItems || []).forEach(function (item, idx) {
-          html += self.renderShopRow(party, 'custom', idx, item);
+
+        customRows.forEach(function (item) {
+          html += self.renderShopRowCustom(partyId, item);
         });
 
         html += '<div class="shop-total"><span>Totale stanza</span><span>' + this.formatEuro(total) + '</span></div>';
         html += '<div class="row" style="margin-top:10px;gap:8px;">' +
           '<input type="text" id="customItemName" placeholder="Articolo custom" style="flex:1;">' +
           '<input type="number" id="customItemPrice" placeholder="€" step="0.5" style="width:80px;">' +
-          '<button class="btn btn--sm btn--secondary" onclick="app.addCustomItem(' + partyId + ')" style="width:auto;">+</button>' +
+          '<button type="button" class="btn btn--sm btn--secondary" onclick="app.addCustomItem(' + partyId + ')" style="width:auto;">+</button>' +
         '</div></div>';
 
         if (this.isAdmin()) {
@@ -1651,75 +2647,184 @@
         panel.innerHTML = html;
       }
 
-      renderShopRow(party, type, idx, item) {
-        var self = this;
+      renderShopRowCatalog(partyId, cat, qty) {
         return (
           '<div class="shop-item">' +
-            '<div><div class="shop-item__name">' + item.name + '</div><div class="shop-item__price">' + this.formatEuro(item.price) + ' cad.</div></div>' +
+            '<div><div class="shop-item__name">' + cat.name + '</div><div class="shop-item__price">' + this.formatEuro(cat.price) + ' cad.</div></div>' +
             '<div class="counter">' +
-              '<button type="button" onclick="app.updateShopQty(' + party.id + ',\'' + type + '\',' + idx + ',-1)">−</button>' +
-              '<span>' + item.qty + '</span>' +
-              '<button type="button" onclick="app.updateShopQty(' + party.id + ',\'' + type + '\',' + idx + ',1)">+</button>' +
+              '<button type="button" onclick="app.updateShopQty(' + partyId + ',\'' + cat.id + '\',-1)">−</button>' +
+              '<span>' + qty + '</span>' +
+              '<button type="button" onclick="app.updateShopQty(' + partyId + ',\'' + cat.id + '\',1)">+</button>' +
             '</div>' +
           '</div>'
         );
       }
 
-      updateShopQty(partyId, type, idx, delta) {
-        var party = this.parties.find(function (p) { return p.id === partyId; });
-        var list = type === 'catalog' ? party.shoppingList : party.customItems;
-        list[idx].qty = Math.max(0, list[idx].qty + delta);
-        this.renderRoomShopping();
-        this.renderExplore();
+      renderShopRowCustom(partyId, item) {
+        var pendingBadge = !item.is_approved ? ' <span class="pill pill--pink">In attesa</span>' : '';
+        return (
+          '<div class="shop-item">' +
+            '<div><div class="shop-item__name">' + item.item_name + pendingBadge + '</div>' +
+            '<div class="shop-item__price">' + this.formatEuro(parseFloat(item.unit_price)) + ' cad.</div></div>' +
+            '<div class="counter">' +
+              '<button type="button" onclick="app.updateCustomShopQty(\'' + item.id + '\',' + partyId + ',-1)">−</button>' +
+              '<span>' + item.quantity + '</span>' +
+              '<button type="button" onclick="app.updateCustomShopQty(\'' + item.id + '\',' + partyId + ',1)">+</button>' +
+            '</div>' +
+          '</div>'
+        );
       }
 
-      addCustomItem(partyId) {
+      async updateShopQty(partyId, catalogId, delta) {
+        var current = this.getCatalogQty(partyId, catalogId);
+        var newQty = Math.max(0, current + delta);
+        await this.syncCatalogQuantity(partyId, catalogId, newQty);
+      }
+
+      async updateCustomShopQty(dbItemId, partyId, delta) {
+        var rows = this.getRoomShoppingRows(partyId);
+        var item = rows.find(function (r) { return r.id === dbItemId; });
+        if (!item) return;
+        var newQty = Math.max(0, item.quantity + delta);
+        if (!this.supabaseReady) {
+          item.quantity = newQty;
+          if (newQty === 0) {
+            this.roomShoppingCache[this.getPartyIdKey(partyId)] = rows.filter(function (r) { return r.id !== dbItemId; });
+          }
+          this.renderRoomShopping();
+          this.renderExplore();
+          return;
+        }
+        await this.syncCustomQuantity(partyId, dbItemId, newQty);
+      }
+
+      async addCustomItem(partyId) {
         var name = document.getElementById('customItemName').value.trim();
         var price = parseFloat(document.getElementById('customItemPrice').value);
         if (!name || isNaN(price)) return alert('Inserisci nome e prezzo!');
-        var party = this.parties.find(function (p) { return p.id === partyId; });
-        party.customItems.push({ name: name, price: price, qty: 1, custom: true, addedBy: this.currentUser ? this.currentUser.username : 'guest' });
-        this.pendingCatalogItems.push({ id: 'pc' + Date.now(), name: name, price: price, submittedBy: this.currentUser ? this.currentUser.username : 'guest' });
-        this.renderRoomShopping();
-        this.showToast('Articolo aggiunto alla lista! 🛒');
+        var key = this.getPartyIdKey(partyId);
+
+        if (!this.supabaseReady) {
+          var party = this.parties.find(function (p) { return p.id === partyId; });
+          this.ensureLocalShoppingFallback(partyId);
+          party.customItems = party.customItems || [];
+          party.customItems.push({ name: name, price: price, qty: 1, addedBy: this.currentUser ? this.currentUser.username : 'guest' });
+          this.pendingCatalogItems.push({ id: 'pc' + Date.now(), name: name, price: price, submittedBy: this.currentUser ? this.currentUser.username : 'guest' });
+          this.roomShoppingCache[key].push({
+            id: 'local_custom_' + Date.now(), party_id: key, item_name: name, unit_price: price,
+            quantity: 1, is_custom: true, is_approved: false,
+            added_by: this.currentUser ? this.currentUser.username : 'guest'
+          });
+          this.renderRoomShopping();
+          this.showToast('Articolo aggiunto alla lista! 🛒');
+          return;
+        }
+
+        try {
+          var result = await this.supabase.from('party_shopping_items').insert({
+            party_id: key,
+            catalog_id: null,
+            item_name: name,
+            unit_price: price,
+            quantity: 1,
+            is_custom: true,
+            is_approved: false,
+            added_by: this.currentUser ? this.currentUser.username : 'guest'
+          });
+          if (result.error) throw result.error;
+          document.getElementById('customItemName').value = '';
+          document.getElementById('customItemPrice').value = '';
+          this.showToast('Articolo custom inviato! In attesa approvazione admin 🛒');
+          await this.loadShoppingItems(partyId);
+          if (this.isAdmin()) await this.loadAdminPendingItems();
+          this.renderProfileAdminPanel();
+        } catch (err) {
+          alert(err.message || 'Errore inserimento articolo.');
+        }
       }
 
       renderAdminPanel() {
         var self = this;
-        var html = '<div class="admin-panel"><h3>🔧 Dashboard Presy Admin</h3><p class="subtitle">Approva item per il catalogo globale</p>';
-        this.pendingCatalogItems.forEach(function (item, i) {
-          html += '<div class="admin-item"><span><strong>' + item.name + '</strong> · ' + self.formatEuro(item.price) + '<br><small style="color:var(--text-muted);">by @' + item.submittedBy + '</small></span>' +
-            '<div style="display:flex;gap:4px;">' +
-            '<button class="btn btn--sm" onclick="app.adminApproveItem(' + i + ')">✓</button>' +
-            '<button class="btn btn--sm btn--secondary" onclick="app.adminEditItem(' + i + ')">✎</button>' +
-            '<button class="btn btn--sm btn--secondary" onclick="app.adminDeleteItem(' + i + ')">✕</button>' +
-            '</div></div>';
-        });
-        if (!this.pendingCatalogItems.length) html += '<p style="font-size:12px;color:var(--text-muted);">Nessun item in attesa.</p>';
+        var html = '<div class="admin-panel"><h3>🔧 Presy Admin Dashboard</h3>' +
+          '<p class="subtitle">Articoli custom in attesa di approvazione</p>';
+        if (!this.adminPendingItems.length) {
+          html += '<p style="font-size:12px;color:var(--text-muted);">Nessun item in attesa.</p>';
+        } else {
+          this.adminPendingItems.forEach(function (item) {
+            html += '<div class="admin-item"><span><strong>' + item.item_name + '</strong> · ' +
+              self.formatEuro(parseFloat(item.unit_price)) +
+              '<br><small style="color:var(--text-muted);">Party #' + item.party_id + ' · @' + (item.added_by || 'anon') + '</small></span>' +
+              '<div style="display:flex;gap:4px;flex-shrink:0;">' +
+              '<button type="button" class="btn btn--sm btn--green" onclick="app.adminApproveDbItem(\'' + item.id + '\')">Approva</button>' +
+              '<button type="button" class="btn btn--sm btn--danger" onclick="app.adminRejectDbItem(\'' + item.id + '\')">Rifiuta</button>' +
+              '</div></div>';
+          });
+        }
         return html + '</div>';
       }
 
-      adminApproveItem(i) {
-        var item = this.pendingCatalogItems[i];
-        this.globalCatalog.push({ id: 'cat_' + Date.now(), name: item.name, price: item.price });
-        this.pendingCatalogItems.splice(i, 1);
-        this.showToast('Item approvato nel catalogo globale ✓');
-        this.renderRoomShopping();
+      renderProfileAdminPanel() {
+        var container = document.getElementById('profileAdminPanel');
+        if (!container) return;
+        if (!this.isAdmin()) { container.innerHTML = ''; return; }
+        container.innerHTML = '<div class="card">' + this.renderAdminPanel() + '</div>';
       }
 
-      adminEditItem(i) {
-        var item = this.pendingCatalogItems[i];
-        var newName = prompt('Nome item:', item.name);
-        var newPrice = prompt('Prezzo:', item.price);
-        if (newName) item.name = newName;
-        if (newPrice) item.price = parseFloat(newPrice) || item.price;
-        this.renderRoomShopping();
+      async adminApproveDbItem(itemId) {
+        if (!this.isAdmin()) return;
+        if (!this.supabaseReady) {
+          var idx = parseInt(String(itemId).replace('local_', ''), 10);
+          if (!isNaN(idx) && this.pendingCatalogItems[idx]) {
+            var item = this.pendingCatalogItems[idx];
+            this.globalCatalog.push({ id: 'cat_' + Date.now(), name: item.name, price: item.price });
+            this.pendingCatalogItems.splice(idx, 1);
+          }
+          this.showToast('Item approvato nel catalogo globale ✓');
+          this.renderRoomShopping();
+          this.renderProfileAdminPanel();
+          return;
+        }
+        try {
+          var row = this.adminPendingItems.find(function (i) { return i.id === itemId; });
+          var upd = await this.supabase.from('party_shopping_items')
+            .update({ is_approved: true }).eq('id', itemId);
+          if (upd.error) throw upd.error;
+          if (row) {
+            this.globalCatalog.push({ id: 'cat_' + Date.now(), name: row.item_name, price: parseFloat(row.unit_price) });
+          }
+          this.showToast('Articolo approvato nel catalogo globale ✓');
+          await this.loadAdminPendingItems();
+          var pid = this.currentChatRoom.startsWith('party_')
+            ? this.partyIdFromRoom(this.currentChatRoom) : null;
+          if (pid) await this.loadShoppingItems(pid);
+          this.renderProfileAdminPanel();
+        } catch (err) {
+          alert(err.message || 'Errore approvazione.');
+        }
       }
 
-      adminDeleteItem(i) {
-        this.pendingCatalogItems.splice(i, 1);
-        this.showToast('Item eliminato');
-        this.renderRoomShopping();
+      async adminRejectDbItem(itemId) {
+        if (!this.isAdmin()) return;
+        if (!this.supabaseReady) {
+          var idx = parseInt(String(itemId).replace('local_', ''), 10);
+          if (!isNaN(idx)) this.pendingCatalogItems.splice(idx, 1);
+          this.showToast('Item eliminato');
+          this.renderProfileAdminPanel();
+          this.renderRoomShopping();
+          return;
+        }
+        try {
+          var del = await this.supabase.from('party_shopping_items').delete().eq('id', itemId);
+          if (del.error) throw del.error;
+          this.showToast('Articolo rifiutato ed eliminato');
+          await this.loadAdminPendingItems();
+          var pid = this.currentChatRoom.startsWith('party_')
+            ? this.partyIdFromRoom(this.currentChatRoom) : null;
+          if (pid) await this.loadShoppingItems(pid);
+          this.renderProfileAdminPanel();
+        } catch (err) {
+          alert(err.message || 'Errore eliminazione.');
+        }
       }
 
       renderMessages() {
@@ -1776,12 +2881,14 @@
         var txt = input.value.trim();
         if (!txt && !this.pendingMedia) return;
 
+        var self = this;
         var msg = {
           roomId: this.currentChatRoom,
           sender: this.currentUser.username,
           text: txt,
           media: this.pendingMedia ? { type: this.pendingMedia.type, url: this.pendingMedia.url } : null,
-          ts: Date.now()
+          ts: Date.now(),
+          isRequest: false
         };
 
         if (this.currentChatRoom.startsWith('dm_')) {
@@ -1791,7 +2898,30 @@
               var u = this.users.find(function (x) { return x.id === uid; });
               this.dmRequests.push({ roomId: this.currentChatRoom, userId: uid, username: u ? u.username : 'unknown' });
             }
+            msg.isRequest = true;
           }
+        }
+
+        if (this.supabaseReady) {
+          this.supabase.from('chat_messages').insert({
+            room_id: msg.roomId,
+            sender_username: msg.sender,
+            sender_id: this.currentUser.id,
+            text: msg.text,
+            media_type: msg.media ? msg.media.type : null,
+            media_url: msg.media ? msg.media.url : null,
+            is_request: msg.isRequest
+          }).then(async function (result) {
+            if (result.error) {
+              alert(result.error.message || 'Errore invio messaggio.');
+              return;
+            }
+            input.value = '';
+            self.pendingMedia = null;
+            await self.fetchMessagesFromSupabase(self.currentChatRoom);
+            await self.renderChat();
+          });
+          return;
         }
 
         this.messages.push(msg);
@@ -1801,7 +2931,7 @@
       }
 
       /* ─── Profile ─── */
-      renderProfile() {
+      async renderProfile() {
         if (!this.currentUser) {
           document.getElementById('profUsername').textContent = 'Guest Mode';
           document.getElementById('profMail').textContent = 'Effettua il login per tracciare metriche';
@@ -1813,8 +2943,16 @@
           return;
         }
 
+        if (this.supabaseReady) {
+          await this.fetchFreshProfile();
+          await this.fetchPartiesFromSupabase();
+        }
+
         var u = this.currentUser;
-        document.getElementById('profDisplayName').value = u.displayName || u.username;
+        var displayInput = document.getElementById('profDisplayName');
+        if (document.activeElement !== displayInput) {
+          displayInput.value = u.displayName || u.username;
+        }
         document.getElementById('profUsername').textContent = '@' + u.username;
         document.getElementById('profMail').textContent = u.email;
         document.getElementById('countFollowers').textContent = this.myFollowers.length;
@@ -1832,21 +2970,23 @@
           hist.innerHTML = '<p style="color:var(--neon-pink);font-size:13px;text-align:center;padding:10px;">Feed nascosto al pubblico.</p>';
           return;
         }
-        var myParties = this.parties.filter(function (p) { return p.participants.includes(u.id); });
+        var engine = this;
+        var myParties = this.parties.filter(function (p) { return engine.userInParty(p, u.id); });
         if (!myParties.length) {
           hist.innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:10px;">Nessun evento registrato.</p>';
         } else {
           var self = this;
           myParties.forEach(function (p) {
+            var q = self.qid(p.id);
             var el = document.createElement('div');
             el.className = 'card';
             el.setAttribute('data-party-id', p.id);
             el.style.cssText = 'padding:12px;margin-bottom:8px;font-size:14px;';
             var ownerBtns = self.isOwner(p)
               ? '<div class="party-actions-row" style="margin-top:8px;">' +
-                  '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + p.id + ')">✏️ Modifica</button>' +
-                  '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + p.id + ', true)">🗑 Elimina</button>' +
-                  '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + p.id + ')">📤 Condividi</button>' +
+                  '<button class="btn btn--sm btn--edit" onclick="app.openEditParty(' + q + ')">✏️ Modifica</button>' +
+                  '<button class="btn btn--sm btn--danger" onclick="app.deleteParty(' + q + ', true)">🗑 Elimina</button>' +
+                  '<button type="button" class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.shareParty(' + q + ')">📤 Condividi</button>' +
                 '</div>'
               : '';
             el.innerHTML = '<strong>' + p.name + '</strong> a ' + p.club +
@@ -1858,11 +2998,39 @@
             hist.appendChild(el);
           });
         }
+        if (this.isAdmin()) {
+          var selfAdmin = this;
+          this.loadAdminPendingItems().then(function () { selfAdmin.renderProfileAdminPanel(); });
+        } else {
+          var adminPanel = document.getElementById('profileAdminPanel');
+          if (adminPanel) adminPanel.innerHTML = '';
+        }
       }
 
       saveDisplayName() {
         if (!this.currentUser) return;
-        this.currentUser.displayName = document.getElementById('profDisplayName').value.trim() || this.currentUser.username;
+        var self = this;
+        var displayName = document.getElementById('profDisplayName').value.trim() || this.currentUser.username;
+
+        if (this.supabaseReady) {
+          clearTimeout(this._displayNameDebounce);
+          this._displayNameDebounce = setTimeout(async function () {
+            var res = await self.persistProfileToDb({ display_name: displayName });
+            if (res.ok) {
+              self.updateAuthUI();
+              await self.renderProfile();
+              self.showToast('Nome aggiornato ✓');
+            } else {
+              alert('Impossibile salvare il nome visualizzato.');
+            }
+          }, 400);
+          return;
+        }
+
+        this.currentUser.displayName = displayName;
+        this.persistMockSession();
+        this.updateAuthUI();
+        this.renderProfile();
         this.showToast('Nome aggiornato ✓');
       }
 
@@ -1870,10 +3038,24 @@
         if (!this.currentUser || !e.target.files[0]) return;
         var reader = new FileReader();
         var self = this;
-        reader.onload = function (ev) {
-          self.currentUser.avatar = ev.target.result;
-          self.renderProfile();
-          self.showToast('Foto profilo aggiornata 📷');
+        reader.onload = async function (ev) {
+          var avatarUrl = ev.target.result;
+          if (self.supabaseReady) {
+            var res = await self.persistProfileToDb({ avatar_url: avatarUrl });
+            if (!res.ok) {
+              alert('Errore salvataggio foto profilo.');
+              return;
+            }
+            self.updateAuthUI();
+            await self.renderProfile();
+            self.showToast('Foto profilo aggiornata 📷');
+          } else {
+            self.currentUser.avatar = avatarUrl;
+            self.persistMockSession();
+            self.updateAuthUI();
+            await self.renderProfile();
+            self.showToast('Foto profilo aggiornata 📷');
+          }
         };
         reader.readAsDataURL(e.target.files[0]);
       }
@@ -1886,14 +3068,53 @@
         this.openModal('settingsModal');
       }
 
-      saveSettings() {
+      async saveSettings() {
         if (!this.currentUser) return;
-        this.currentUser.email = document.getElementById('settingsEmail').value.trim();
-        this.currentUser.username = document.getElementById('settingsUsername').value.trim();
+        var email = document.getElementById('settingsEmail').value.trim();
+        var username = document.getElementById('settingsUsername').value.trim();
         var pass = document.getElementById('settingsPassword').value;
+
+        if (!username) return alert('Lo username non può essere vuoto.');
+
+        if (this.supabaseReady) {
+          try {
+            if (pass) {
+              var passResult = await this.supabase.auth.updateUser({ password: pass });
+              if (passResult.error) throw passResult.error;
+            }
+            if (email && email !== this.currentUser.email) {
+              var emailResult = await this.supabase.auth.updateUser({ email: email });
+              if (emailResult.error) throw emailResult.error;
+            }
+
+            var profileResult = await this.persistProfileToDb({
+              username: username,
+              email: email || this.currentUser.email
+            });
+            if (!profileResult.ok) throw profileResult.error || new Error('Salvataggio profilo fallito');
+
+            await this.supabase.auth.updateUser({
+              data: { username: username, display_name: this.currentUser.displayName }
+            });
+
+            this.updateAuthUI();
+            await this.renderProfile();
+
+            this.closeModal('settingsModal');
+            this.showToast('Impostazioni salvate ⚙️');
+          } catch (err) {
+            alert(err.message || 'Errore durante il salvataggio delle impostazioni.');
+          }
+          return;
+        }
+
+        this.currentUser.email = email;
+        this.currentUser.username = username;
         if (pass) this.currentUser.password = pass;
+        this.persistMockSession();
         this.closeModal('settingsModal');
-        this.renderProfile();
+        this.updateAuthUI();
+        await this.renderProfile();
         this.showToast('Impostazioni salvate ⚙️');
       }
 
