@@ -699,6 +699,16 @@
       opacity: 0.4; cursor: not-allowed; pointer-events: none;
       transform: none !important;
     }
+
+    .username-feedback {
+      font-size: 12px;
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .username-feedback.success { color: #00ff66; }
+    .username-feedback.error { color: #ff3333; }
   </style>
 </head>
 <body>
@@ -926,7 +936,8 @@
 
         <div class="input-group" id="authUsernameGroup">
           <label>Username</label>
-          <input type="text" id="authUsername" placeholder="es. Mario_Rossi">
+          <input type="text" id="authUsername" placeholder="es. Mario_Rossi" oninput="app.handleUsernameInput(this.value, 'reg')">
+          <div id="reg-username-feedback" class="username-feedback"></div>
         </div>
         <div class="input-group" id="authPhoneGroup" style="display:none;">
           <label>Numero di telefono</label>
@@ -1018,10 +1029,14 @@
       <div class="modal-handle"></div>
       <h2>⚙️ Impostazioni</h2>
       <div class="input-group"><label>Email</label><input type="email" id="settingsEmail"></div>
-      <div class="input-group"><label>Username</label><input type="text" id="settingsUsername" class="username-input"></div>
+      <div class="input-group">
+        <label>Username</label>
+        <input type="text" id="settingsUsername" class="username-input" oninput="app.handleUsernameInput(this.value, 'settings')">
+        <div id="settings-username-feedback" class="username-feedback"></div>
+      </div>
       <div class="input-group"><label>Numero di telefono</label><input type="tel" id="settingsPhone" class="phone-input" placeholder="Es. 3331234567" inputmode="tel" autocomplete="tel"></div>
       <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
-      <button class="btn" onclick="app.saveSettings()">Salva Modifiche</button>
+      <button type="button" class="btn" id="settingsSaveBtn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
     </div>
   </div>
@@ -1139,6 +1154,10 @@
         this.contactsSync = { onPresy: [], invite: [], loading: false, status: '' };
         this.browserSearchResults = [];
         this._friendSearchDebounce = null;
+        this._usernameRegDebounce = null;
+        this._usernameSettingsDebounce = null;
+        this._usernameRegAvailable = null;
+        this._usernameSettingsAvailable = null;
       }
 
       _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
@@ -2010,6 +2029,8 @@
         if (privacy) privacy.checked = false;
         document.getElementById('legalTermsPanel').classList.remove('open');
         document.getElementById('legalPrivacyPanel').classList.remove('open');
+        this.clearUsernameFeedback('reg');
+        this._usernameRegAvailable = null;
         this.updateAuthSubmitState();
       }
 
@@ -2033,7 +2054,162 @@
         }
         var termsOk = document.getElementById('authAcceptTerms').checked;
         var privacyOk = document.getElementById('authAcceptPrivacy').checked;
-        btn.disabled = !(termsOk && privacyOk);
+        var usernameVal = document.getElementById('authUsername').value.trim();
+        var usernameOk = usernameVal.length >= 3 && this._usernameRegAvailable === true;
+        btn.disabled = !(termsOk && privacyOk && usernameOk);
+      }
+
+      updateSettingsSubmitState() {
+        var btn = document.getElementById('settingsSaveBtn');
+        if (!btn) return;
+        var usernameVal = document.getElementById('settingsUsername').value.trim();
+        if (!usernameVal || usernameVal.length < 3) {
+          btn.disabled = true;
+          return;
+        }
+        if (this._usernameSettingsAvailable === false) {
+          btn.disabled = true;
+          return;
+        }
+        if (this._usernameSettingsAvailable === true) {
+          btn.disabled = false;
+          return;
+        }
+        if (this.currentUser && usernameVal.toLowerCase() === (this.currentUser.username || '').trim().toLowerCase()) {
+          btn.disabled = false;
+        } else {
+          btn.disabled = true;
+        }
+      }
+
+      clearUsernameFeedback(type) {
+        var id = type === 'reg' ? 'reg-username-feedback' : 'settings-username-feedback';
+        var el = document.getElementById(id);
+        if (el) {
+          el.textContent = '';
+          el.className = 'username-feedback';
+        }
+      }
+
+      setUsernameFeedback(type, status, message) {
+        var id = type === 'reg' ? 'reg-username-feedback' : 'settings-username-feedback';
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = message;
+        el.className = 'username-feedback' + (status === 'success' ? ' success' : status === 'error' ? ' error' : '');
+      }
+
+      handleUsernameInput(value, type) {
+        var self = this;
+        var debounceKey = type === 'reg' ? '_usernameRegDebounce' : '_usernameSettingsDebounce';
+        clearTimeout(this[debounceKey]);
+        this[debounceKey] = setTimeout(function () {
+          self.checkUsernameRealtime(value, type);
+        }, 400);
+      }
+
+      async verifyUsernameAvailable(username, allowCurrentUser) {
+        var normalized = (username || '').trim();
+        if (normalized.length < 3) return false;
+
+        if (allowCurrentUser && this.currentUser) {
+          var current = (this.currentUser.username || '').trim().toLowerCase();
+          if (normalized.toLowerCase() === current) return true;
+        }
+
+        if (!this.supabaseReady) return true;
+
+        var result = await this.supabase
+          .from('profiles')
+          .select('username')
+          .eq('username', normalized.toLowerCase())
+          .maybeSingle();
+
+        if (result.error) {
+          console.error('[Presy] verifyUsernameAvailable:', result.error);
+          return false;
+        }
+
+        return !result.data;
+      }
+
+      async checkUsernameRealtime(username, type) {
+        var normalized = (username || '').trim();
+        var queryUsername = normalized.toLowerCase();
+
+        if (normalized.length < 3) {
+          this.clearUsernameFeedback(type);
+          if (type === 'reg') {
+            this._usernameRegAvailable = null;
+            this.updateAuthSubmitState();
+          } else {
+            this._usernameSettingsAvailable = null;
+            this.updateSettingsSubmitState();
+          }
+          return;
+        }
+
+        if (type === 'settings' && this.currentUser) {
+          var current = (this.currentUser.username || '').trim().toLowerCase();
+          if (queryUsername === current) {
+            this.setUsernameFeedback(type, 'success', '✔️');
+            this._usernameSettingsAvailable = true;
+            this.updateSettingsSubmitState();
+            return;
+          }
+        }
+
+        if (!this.supabaseReady) {
+          this.setUsernameFeedback(type, 'success', '✔️');
+          if (type === 'reg') {
+            this._usernameRegAvailable = true;
+            this.updateAuthSubmitState();
+          } else {
+            this._usernameSettingsAvailable = true;
+            this.updateSettingsSubmitState();
+          }
+          return;
+        }
+
+        try {
+          var result = await this.supabase
+            .from('profiles')
+            .select('username')
+            .eq('username', queryUsername)
+            .maybeSingle();
+
+          if (result.error) throw result.error;
+
+          if (result.data) {
+            this.setUsernameFeedback(type, 'error', '❌ questo nome esiste già');
+            if (type === 'reg') {
+              this._usernameRegAvailable = false;
+              this.updateAuthSubmitState();
+            } else {
+              this._usernameSettingsAvailable = false;
+              this.updateSettingsSubmitState();
+            }
+          } else {
+            this.setUsernameFeedback(type, 'success', '✔️');
+            if (type === 'reg') {
+              this._usernameRegAvailable = true;
+              this.updateAuthSubmitState();
+            } else {
+              this._usernameSettingsAvailable = true;
+              this.updateSettingsSubmitState();
+            }
+          }
+        } catch (err) {
+          console.error('[Presy] checkUsernameRealtime:', err);
+          this.setUsernameFeedback(type, 'error', 'Errore verifica username');
+          if (type === 'reg') {
+            this._usernameRegAvailable = false;
+            this.updateAuthSubmitState();
+          } else {
+            this._usernameSettingsAvailable = false;
+            this.updateSettingsSubmitState();
+          }
+        }
       }
 
       setAuthMode(mode) {
@@ -2053,6 +2229,11 @@
         if (!isLogin) {
           document.getElementById('authAcceptTerms').checked = false;
           document.getElementById('authAcceptPrivacy').checked = false;
+          this.clearUsernameFeedback('reg');
+          this._usernameRegAvailable = null;
+        } else {
+          this.clearUsernameFeedback('reg');
+          this._usernameRegAvailable = null;
         }
         this.updateAuthSubmitState();
       }
@@ -2141,6 +2322,11 @@
             alert('⚠️ Devi accettare i Termini di Servizio e la Privacy Policy per creare un account.');
             this.updateAuthSubmitState();
             return;
+          }
+          if (user.length < 3) return alert('Lo username deve avere almeno 3 caratteri.');
+          if (this._usernameRegAvailable !== true) {
+            var regAvailable = await this.verifyUsernameAvailable(user, false);
+            if (!regAvailable) return alert('❌ Questo username è già in uso. Scegline un altro.');
           }
         }
 
@@ -3792,7 +3978,15 @@
         this.populateProfileFields(this.currentUser);
         var passInput = document.getElementById('settingsPassword');
         if (passInput) passInput.value = '';
+        this._usernameSettingsAvailable = null;
+        this.clearUsernameFeedback('settings');
         this.openModal('settingsModal');
+        var settingsUsername = document.getElementById('settingsUsername');
+        if (settingsUsername) {
+          this.checkUsernameRealtime(settingsUsername.value, 'settings');
+        } else {
+          this.updateSettingsSubmitState();
+        }
       }
 
       async saveSettings() {
@@ -3804,6 +3998,12 @@
         var pass = document.getElementById('settingsPassword').value;
 
         if (!username) return alert('Lo username non può essere vuoto.');
+        if (username.length < 3) return alert('Lo username deve avere almeno 3 caratteri.');
+
+        if (this._usernameSettingsAvailable !== true) {
+          var settingsAvailable = await this.verifyUsernameAvailable(username, true);
+          if (!settingsAvailable) return alert('❌ Questo username è già in uso. Scegline un altro.');
+        }
 
         if (this.supabaseReady) {
           try {
