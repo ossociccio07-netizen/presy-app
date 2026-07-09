@@ -1059,17 +1059,17 @@
         <div id="settings-username-feedback" class="username-feedback"></div>
       </div>
       <div class="input-group"><label>Numero di telefono</label><input type="tel" id="settingsPhone" class="phone-input" placeholder="Es. 3331234567" inputmode="tel" autocomplete="tel"></div>
+      <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
       <button type="button" class="btn" id="settingsSaveBtn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
       <div class="settings-actions" style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
-        <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
-      <a href="https://wa.me/393318316081?text=Ciao%,%20ho%20bisogno%20di%20assistenza%20con%20Presy" target="_blank" rel="noopener noreferrer" class="btn" style="width: 100%; background-color: #25D366; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; margin-top: 15px; margin-bottom: 15px; border-radius: 8px; padding: 12px; font-weight: bold;">
-        💬 Assistenza h24 (WhatsApp)
-      </a>
+        <a href="https://wa.me/393318316081?text=Ciao%,%20ho%20bisogno%20di%20assistenza%20con%20Presy" target="_blank" rel="noopener noreferrer" class="btn" style="width: 100%; background-color: #25D366; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; margin-top: 15px; margin-bottom: 15px; border-radius: 8px; padding: 12px; font-weight: bold;">
+          💬 Assistenza
+        </a>
         <button type="button" id="logoutBtn" class="btn btn--secondary" onclick="app.handleLogout()" style="width: 100%;">
           🚪 Esci dall'account
         </button>
-        <button type="button" id="deleteAccountBtn" class="btn" onclick="app.handleDeleteAccount()" style="width: 100%; background-color: #220000; color: #ff3333; border: 1px solid #ff3333;">
+        <button type="button" id="deleteAccountBtn" class="btn" onclick="app.handleDeleteAccount()" style="width: 100%; background-color: #220000; color: #fff; border: 1px solid #ff3333;">
           ⚠️ Elimina Account Definitivamente
         </button>
       </div>
