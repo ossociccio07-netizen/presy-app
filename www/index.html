@@ -1039,6 +1039,14 @@
       <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
       <button type="button" class="btn" id="settingsSaveBtn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
+      <div class="settings-actions" style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+        <button type="button" id="logoutBtn" class="btn btn--secondary" onclick="app.handleLogout()" style="width: 100%;">
+          🚪 Esci dall'account
+        </button>
+        <button type="button" id="deleteAccountBtn" class="btn" onclick="app.handleDeleteAccount()" style="width: 100%; background-color: #220000; color: #ff3333; border: 1px solid #ff3333;">
+          ⚠️ Elimina Account Definitivamente
+        </button>
+      </div>
     </div>
   </div>
 
@@ -4100,6 +4108,53 @@
         this.updateAuthUI();
         await this.renderProfile();
         this.showToast('Impostazioni salvate ⚙️');
+      }
+
+      clearLocalAppSession() {
+        this.currentUser = null;
+        localStorage.removeItem('presy_mock_user');
+      }
+
+      async handleLogout() {
+        try {
+          if (this.supabaseReady) {
+            var result = await this.supabase.auth.signOut();
+            if (result.error) throw result.error;
+          }
+          this.clearLocalAppSession();
+          this.closeModal('settingsModal');
+          window.location.reload();
+        } catch (err) {
+          alert(err.message || 'Errore durante il logout.');
+        }
+      }
+
+      async handleDeleteAccount() {
+        if (!this.currentUser) return;
+
+        var conferma = confirm(
+          'Sei sicuro di voler eliminare definitivamente il tuo account Presy? ' +
+          'Questa operazione è irreversibile e cancellerà tutti i tuoi dati.'
+        );
+        if (!conferma) return;
+
+        if (!this.supabaseReady) {
+          alert('Eliminazione account disponibile solo con account Supabase collegato.');
+          return;
+        }
+
+        try {
+          var rpcResult = await this.supabase.rpc('delete_user_account');
+          if (rpcResult.error) throw rpcResult.error;
+
+          await this.supabase.auth.signOut();
+          this.clearLocalAppSession();
+          this.closeModal('settingsModal');
+          alert('Il tuo account è stato eliminato correttamente.');
+          window.location.reload();
+        } catch (err) {
+          alert(err.message || 'Errore durante l\'eliminazione dell\'account.');
+        }
       }
 
       openFollowersModal() {
