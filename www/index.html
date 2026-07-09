@@ -699,25 +699,6 @@
       opacity: 0.4; cursor: not-allowed; pointer-events: none;
       transform: none !important;
     }
-
-    .time-inline-row {
-      display: flex !important;
-      flex-direction: row !important;
-      gap: 12px !important;
-      width: 100% !important;
-      margin-bottom: 10px;
-    }
-
-    .time-inline-row .input-group {
-      flex: 1 !important;
-      margin: 0 !important;
-      max-width: none !important; /* Rimuove vecchi blocchi di max-width solo per questa riga */
-    }
-
-    .time-inline-row input[type="time"] {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
   </style>
 </head>
 <body>
@@ -757,7 +738,7 @@
             </div>
             <div class="filter-time-block">
               <p class="filter-time-label">Inserisci orario di inizio nel range qua sotto</p>
-              <div class="time-inline-row">
+              <div class="time-range-row">
                 <div class="input-group">
                   <label>Dalle ore</label>
                   <input type="time" id="filterTimeFrom" onchange="app.applyFilters()">
