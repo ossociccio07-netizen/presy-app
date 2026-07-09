@@ -305,31 +305,76 @@
 
     .time-range-row {
       display: flex;
-      flex-direction: row;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
       width: 100%;
-      align-items: center;
+      align-items: stretch;
     }
 
     .time-range-row .input-group {
-      flex: 1;
+      width: 100%;
       min-width: 0;
       margin-bottom: 0;
     }
 
     .time-range-row .input-group label {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      white-space: normal;
     }
 
     .time-range-row input[type="time"] {
       width: 100%;
       min-width: 0;
       max-width: 100%;
-      padding: 10px 8px;
-      font-size: 14px;
+      padding: 12px;
+      font-size: 15px;
       box-sizing: border-box;
+    }
+
+    .stack-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .stack-fields .input-group {
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .rubrica-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 14px 0 8px;
+    }
+
+    .rubrica-section-title:first-child { margin-top: 0; }
+
+    .rubrica-invite-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .rubrica-invite-row__meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rubrica-invite-row__name {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .rubrica-invite-row__phone {
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     input[type="date"],
@@ -639,7 +684,7 @@
       <section id="view-create" class="app-view">
         <div class="card">
           <h2>Crea un Pre-Serata</h2>
-          <p class="subtitle">Imposta il vibe e attira la crew. La spesa si calcola in stanza.</p>
+          <p class="subtitle">Imposta il vibe e attira i tuoi Amici. La spesa si calcola in stanza.</p>
           <div class="input-group">
             <label>Nome del Pre-Party / Vibe</label>
             <input type="text" id="pName" placeholder="Es. Warmup Carico Sotto Le Stelle 🚀">
@@ -654,12 +699,12 @@
               <input type="text" id="pProvincia" placeholder="Es. IM, TO">
             </div>
           </div>
-          <div class="row">
-            <div class="input-group" style="flex:1;">
+          <div class="stack-fields">
+            <div class="input-group">
               <label>Data</label>
               <input type="date" id="pData">
             </div>
-            <div class="input-group" style="flex:1;">
+            <div class="input-group">
               <label>Orario Incontro</label>
               <input type="time" id="pOrario" value="21:00">
             </div>
@@ -693,9 +738,11 @@
       <section id="view-social" class="app-view">
         <div class="card">
           <h2>Amici</h2>
-          <p class="subtitle">Trova, segui e invita la tua crew.</p>
-          <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Collega Contatti della Rubrica</button>
-          <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita la tua Crew</button>
+          <p class="subtitle">Trova, segui e invita i tuoi Amici.</p>
+          <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">Invita Amici dalla rubrica</h3>
+          <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Sincronizza Rubrica</button>
+          <div id="contactsRubricaContainer" style="display:none;margin-bottom:14px;"></div>
+          <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita i tuoi Amici</button>
           <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()">
           <div id="searchHistoryContainer" class="search-history"></div>
           <div id="socialUsersContainer" style="margin-top:14px;"></div>
@@ -991,6 +1038,7 @@
         this.adminPendingItems = [];
         this._authListenerRegistered = false;
         this.profileCache = {};
+        this.contactsRubrica = { matched: [], invite: [], syncing: false };
       }
 
       _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
@@ -1635,14 +1683,14 @@
             '<span class="avatar">' + av + '</span>' + label +
             (isHost ? ' 👑' : '') + '</span>';
         }).join('');
-        return '<div class="participant-preview"><div class="participant-preview__label">Crew (' + party.participants.length + ')</div><div class="participant-chips">' + chips + '</div></div>';
+        return '<div class="participant-preview"><div class="participant-preview__label">Amici (' + party.participants.length + ')</div><div class="participant-chips">' + chips + '</div></div>';
       }
 
       buildShareText(party) {
         return 'Entra nel pre-serata di Presy per stasera! 🚀 Vibe: ' + party.name +
           ' — Ci vediamo alle ' + party.orario + ' a ' + party.geoloc +
           ' e dopo si vola all\'omonimo ' + party.club +
-          '! Entra nella crew qui: https://presy.app/party=' + party.id;
+          '! Entra tra gli Amici qui: https://presy.app/party=' + party.id;
       }
 
       async shareParty(partyId) {
@@ -1674,10 +1722,10 @@
           } else {
             throw new Error('Clipboard non disponibile');
           }
-          this.showToast('Link copiato, mandalo sulla chat della crew! 📲');
+          this.showToast('Link copiato, mandalo in chat agli Amici! 📲');
         } catch (err) {
           prompt('Copia e condividi:', text);
-          this.showToast('Link copiato, mandalo sulla chat della crew! 📲');
+          this.showToast('Link copiato, mandalo in chat agli Amici! 📲');
         }
       }
 
@@ -1827,7 +1875,12 @@
         document.getElementById('tab-' + tabId).classList.add('tabs__btn--active');
         if (tabId === 'profile') this.renderProfile();
         if (tabId === 'chat') this.renderChat();
-        if (tabId === 'social') this.renderSocial();
+        if (tabId === 'social') {
+          this.renderSocial();
+          if (this.contactsRubrica.matched.length || this.contactsRubrica.invite.length) {
+            this.renderContactsRubrica();
+          }
+        }
         if (tabId === 'explore') { this.populateProvinceFilter(); this.renderExplore(); }
       }
 
@@ -2191,7 +2244,7 @@
             this.currentUser.participated++;
             this.persistMockSession();
           }
-          this.showToast('Sei nella crew di ' + party.name + '! 🎉');
+          this.showToast('Sei tra gli Amici di ' + party.name + '! 🎉');
         }
         this.currentChatRoom = 'party_' + party.id;
         this.switchTab('chat');
@@ -2263,14 +2316,214 @@
       }
 
       /* ─── Amici / Social ─── */
-      syncContacts() {
-        this.showToast('✨ Rubrica sincronizzata! 12 amici pronti per Presy.');
+
+      normalizePhoneNumber(phone) {
+        if (!phone) return '';
+        var digits = String(phone).replace(/\D/g, '');
+        if (digits.startsWith('0039')) digits = digits.slice(4);
+        else if (digits.startsWith('39') && digits.length > 10) digits = digits.slice(2);
+        if (digits.startsWith('0') && digits.length > 9) digits = digits.slice(1);
+        return digits;
+      }
+
+      profileRowToUser(row) {
+        return {
+          id: row.id,
+          username: row.username,
+          email: row.email,
+          displayName: row.display_name || row.username,
+          avatar: row.avatar_url || null,
+          phoneNumber: row.phone_number || null,
+          followers: 0,
+          participated: row.participated || 0,
+          followedByMe: false,
+          followsMe: false
+        };
+      }
+
+      mergeUserIntoList(user) {
+        var idx = this.users.findIndex(function (u) { return u.id === user.id; });
+        if (idx === -1) {
+          this.users.push(user);
+        } else {
+          this.users[idx] = Object.assign({}, this.users[idx], user);
+        }
+      }
+
+      async syncContacts() {
+        if (!this.currentUser) return this.openAuthModal(function () { app.syncContacts(); });
+
+        var panel = document.getElementById('contactsRubricaContainer');
+        panel.style.display = 'block';
+        panel.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Sincronizzazione rubrica in corso...</p>';
+
+        if (this.contactsRubrica.syncing) return;
+        this.contactsRubrica.syncing = true;
+
+        try {
+          var bridge = await import('./contacts-bridge.mjs');
+          var nativeContacts = await bridge.fetchNativeContacts();
+
+          var phoneMap = {};
+          var inviteCandidates = [];
+
+          nativeContacts.forEach(function (contact) {
+            var displayName = (contact.name && contact.name.display) ||
+              (contact.name && contact.name.given ? (contact.name.given + ' ' + (contact.name.family || '')).trim() : '') ||
+              'Contatto';
+            var phones = (contact.phones || []).map(function (p) { return p.number; }).filter(Boolean);
+            if (!phones.length) return;
+
+            var normalizedPhones = phones.map(function (num) {
+              return app.normalizePhoneNumber(num);
+            }).filter(Boolean);
+
+            if (!normalizedPhones.length) return;
+
+            normalizedPhones.forEach(function (norm) {
+              if (!phoneMap[norm]) {
+                phoneMap[norm] = { name: displayName, rawPhones: phones, normalized: norm };
+              }
+            });
+
+            inviteCandidates.push({
+              name: displayName,
+              rawPhones: phones,
+              normalizedPhones: normalizedPhones
+            });
+          });
+
+          var uniquePhones = Object.keys(phoneMap);
+          if (!uniquePhones.length) {
+            panel.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Nessun numero trovato nella rubrica.</p>';
+            this.contactsRubrica = { matched: [], invite: [], syncing: false };
+            return;
+          }
+
+          var matchedProfiles = [];
+          if (this.supabaseReady) {
+            var profilesResult = await this.supabase
+              .from('profiles')
+              .select('*')
+              .not('phone_number', 'is', null)
+              .neq('id', this.currentUser.id);
+            if (profilesResult.error) throw profilesResult.error;
+            matchedProfiles = profilesResult.data || [];
+          }
+
+          var self = this;
+          var seenProfileIds = {};
+          var matched = [];
+
+          matchedProfiles.forEach(function (row) {
+            if (seenProfileIds[row.id]) return;
+            var profileNorm = self.normalizePhoneNumber(row.phone_number);
+            if (!profileNorm || !phoneMap[profileNorm]) return;
+            seenProfileIds[row.id] = true;
+            var user = self.profileRowToUser(row);
+            self.mergeUserIntoList(user);
+            matched.push({
+              profile: user,
+              contactName: phoneMap[profileNorm].name
+            });
+          });
+
+          var matchedNormSet = {};
+          matched.forEach(function (m) {
+            matchedNormSet[self.normalizePhoneNumber(m.profile.phoneNumber)] = true;
+          });
+
+          var invite = inviteCandidates.filter(function (c) {
+            return !c.normalizedPhones.some(function (n) { return matchedNormSet[n]; });
+          });
+
+          this.contactsRubrica = { matched: matched, invite: invite, syncing: false };
+          this.renderContactsRubrica();
+          this.renderSocial();
+          this.showToast(matched.length + ' Amici su Presy · ' + invite.length + ' da invitare');
+        } catch (err) {
+          console.error('[Presy] syncContacts:', err);
+          panel.innerHTML = '<p style="font-size:13px;color:#ff4757;text-align:center;padding:16px;">' +
+            (err.message || 'Impossibile sincronizzare la rubrica.') + '</p>';
+          this.contactsRubrica.syncing = false;
+        }
+      }
+
+      renderContactsRubrica() {
+        var panel = document.getElementById('contactsRubricaContainer');
+        if (!panel) return;
+        panel.style.display = 'block';
+
+        var self = this;
+        var html = '';
+
+        if (this.contactsRubrica.matched.length) {
+          html += '<div class="rubrica-section-title">Amici su Presy</div>';
+          this.contactsRubrica.matched.forEach(function (item) {
+            var u = item.profile;
+            var av = u.avatar
+              ? '<img src="' + u.avatar + '" alt="">'
+              : (u.displayName || u.username)[0].toUpperCase();
+            var qid = self.qid(u.id);
+            html += '<div class="user-row">' +
+              '<div class="user-info" onclick="app.openUserProfile(' + qid + ')">' +
+                '<div class="avatar">' + av + '</div>' +
+                '<div><div style="font-weight:700;">@' + u.username + '</div>' +
+                '<div style="font-size:12px;color:var(--text-muted);">' + item.contactName + '</div></div>' +
+              '</div>' +
+              '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                '<button class="btn btn--sm" onclick="event.stopPropagation();app.toggleFollow(' + qid + ')">' +
+                  (u.followedByMe ? 'Seguito' : 'Aggiungi') +
+                '</button>' +
+              '</div></div>';
+          });
+        }
+
+        if (this.contactsRubrica.invite.length) {
+          html += '<div class="rubrica-section-title">Invita su Presy</div>';
+          this.contactsRubrica.invite.forEach(function (item, idx) {
+            var masked = item.rawPhones[0] ? item.rawPhones[0].replace(/\d(?=\d{4})/g, '•') : '';
+            html += '<div class="rubrica-invite-row">' +
+              '<div class="rubrica-invite-row__meta">' +
+                '<div class="rubrica-invite-row__name">' + item.name + '</div>' +
+                '<div class="rubrica-invite-row__phone">' + masked + '</div>' +
+              '</div>' +
+              '<button class="btn btn--sm btn--secondary" onclick="app.inviteContactToPresy(' + idx + ')">Invita</button>' +
+            '</div>';
+          });
+        }
+
+        if (!html) {
+          html = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Nessun contatto trovato in rubrica.</p>';
+        }
+
+        panel.innerHTML = html;
+      }
+
+      inviteContactToPresy(index) {
+        var contact = this.contactsRubrica.invite[index];
+        if (!contact) return;
+        var link = window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
+        var text = 'Ehi ' + contact.name + '! Unisciti a Presy — l\'app per organizzare pre-serate con gli Amici 🚀 ' + link;
+
+        if (navigator.share) {
+          navigator.share({ title: 'Presy', text: text, url: link }).catch(function () {});
+          return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            app.showToast('Link invito copiato per ' + contact.name + ' 📲');
+          });
+        } else {
+          prompt('Copia e invia a ' + contact.name + ':', text);
+        }
       }
 
       copyInviteLink() {
         var link = window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
         navigator.clipboard.writeText(link).then(function () {
-          app.showToast('🔗 Link copiato! Invia alla tua crew.');
+          app.showToast('🔗 Link copiato! Invia ai tuoi Amici.');
         }).catch(function () {
           prompt('Copia questo link:', link);
         });
@@ -2359,10 +2612,14 @@
         var user = this.users.find(function (u) { return u.id === userId; });
         user.followedByMe = !user.followedByMe;
         user.followers += user.followedByMe ? 1 : -1;
+        this.contactsRubrica.matched.forEach(function (item) {
+          if (item.profile.id === userId) item.profile.followedByMe = user.followedByMe;
+        });
         if (user.followedByMe && this.isMutualFollow(userId)) {
           this.acceptDMRequest('dm_' + userId);
         }
         this.renderSocial();
+        this.renderContactsRubrica();
       }
 
       /* ─── Chat ─── */

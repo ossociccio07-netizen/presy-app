@@ -47,5 +47,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSContactsUsageDescription</key>
+	<string>Presy usa i contatti della rubrica per trovare amici già registrati e invitare chi non ha ancora l'app.</string>
 </dict>
 </plist>
