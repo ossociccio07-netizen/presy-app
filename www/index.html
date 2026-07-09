@@ -306,8 +306,8 @@
     .time-range-row {
       display: flex;
       flex-direction: column;
-      gap: 8px;
       width: 100%;
+      gap: 10px;
       align-items: stretch;
     }
 
@@ -334,14 +334,20 @@
     .field-stack {
       display: flex;
       flex-direction: column;
-      gap: 8px;
       width: 100%;
+      gap: 10px;
     }
 
     .field-stack .input-group {
       width: 100%;
       margin-bottom: 0;
       min-width: 0;
+    }
+
+    .field-stack input,
+    .field-stack select {
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .contacts-section-title {
@@ -791,15 +797,15 @@
           <p class="subtitle" id="socialSubtitle">Trova, segui e invita i tuoi amici.</p>
           <div id="browserFriendsSearch" class="browser-friends-search" style="display:none;">
             <div class="friends-search-bar">
-              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()">
-              <button type="button" class="btn btn--sm btn--secondary" onclick="app.runFriendsSearchNow()">Cerca</button>
+              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()" onkeydown="app.handleFriendsSearchKeydown(event)" onblur="app.commitFriendsSearchHistory()">
+              <button type="button" class="btn btn--sm btn--secondary" onclick="app.runFriendsSearchNow(true)">Cerca</button>
             </div>
             <p class="friends-search-hint">Cerca utenti registrati su Presy da browser — digita almeno 2 caratteri.</p>
           </div>
           <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Sincronizza Rubrica</button>
           <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita i tuoi Amici</button>
           <div id="contactsSyncContainer"></div>
-          <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()">
+          <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()" onkeydown="app.handleLegacySearchKeydown(event)" onblur="app.commitLegacySearchHistory()">
           <div id="searchHistoryContainer" class="search-history"></div>
           <div id="socialUsersContainer" style="margin-top:14px;"></div>
         </div>
@@ -1024,9 +1030,9 @@
         <div class="input-group" style="flex:1;"><label>Città</label><input type="text" id="editPCitta" placeholder="Es. Sanremo"></div>
         <div class="input-group" style="flex:1;"><label>Provincia</label><input type="text" id="editPProvincia" placeholder="Es. IM"></div>
       </div>
-      <div class="row">
-        <div class="input-group" style="flex:1;"><label>Data</label><input type="date" id="editPData"></div>
-        <div class="input-group" style="flex:1;"><label>Orario</label><input type="time" id="editPOrario"></div>
+      <div class="field-stack">
+        <div class="input-group"><label>Data</label><input type="date" id="editPData"></div>
+        <div class="input-group"><label>Orario</label><input type="time" id="editPOrario"></div>
       </div>
       <div class="input-group"><label>Luogo incontro</label><input type="text" id="editPGeoloc"></div>
       <div class="input-group"><label>Discoteca / Club</label><input type="text" id="editPClub"></div>
@@ -2460,17 +2466,64 @@
         }
       }
 
+      saveSearchHistory(term) {
+        var normalized = this.sanitizeSearchQuery(term).toLowerCase();
+        if (normalized.length < 2) return;
+        if (this.searchHistory.indexOf(normalized) !== -1) {
+          this.searchHistory = this.searchHistory.filter(function (t) { return t !== normalized; });
+        }
+        this.searchHistory.unshift(normalized);
+        this.searchHistory = this.searchHistory.slice(0, 8);
+        localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
+        this.renderSearchHistory();
+      }
+
       handleFriendsSearchInput() {
         var self = this;
         clearTimeout(this._friendSearchDebounce);
         this._friendSearchDebounce = setTimeout(function () {
-          self.runFriendsSearchNow();
+          self.runFriendsSearchNow(false);
         }, 350);
       }
 
-      async runFriendsSearchNow() {
+      handleFriendsSearchKeydown(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          var query = this.sanitizeSearchQuery(document.getElementById('friendsSearchField').value);
+          if (query.length >= 2) this.saveSearchHistory(query);
+          this.runFriendsSearchNow(false);
+          if (e.target && e.target.blur) e.target.blur();
+        }
+      }
+
+      commitFriendsSearchHistory() {
+        if (!this.isBrowserMode()) return;
+        var query = this.sanitizeSearchQuery(document.getElementById('friendsSearchField').value);
+        if (query.length >= 2) this.saveSearchHistory(query);
+      }
+
+      handleLegacySearchKeydown(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          var val = document.getElementById('searchUserField').value.trim();
+          if (val.length >= 2) this.saveSearchHistory(val);
+          this.renderSocial();
+          if (e.target && e.target.blur) e.target.blur();
+        }
+      }
+
+      commitLegacySearchHistory() {
+        if (this.isBrowserMode()) return;
+        var val = document.getElementById('searchUserField').value.trim();
+        if (val.length >= 2) this.saveSearchHistory(val);
+      }
+
+      async runFriendsSearchNow(saveToHistory) {
         var raw = document.getElementById('friendsSearchField').value;
         var query = this.sanitizeSearchQuery(raw);
+        if (saveToHistory && query.length >= 2) {
+          this.saveSearchHistory(query);
+        }
         if (query.length < 2) {
           this.browserSearchResults = [];
           this.renderSocial();
@@ -2508,12 +2561,6 @@
           this.browserSearchResults = utentiTrovati.map(function (row) {
             return self.mergeUserIntoList(self.profileRowToUser(row));
           });
-
-          if (query.length >= 2 && !this.searchHistory.includes(query.toLowerCase())) {
-            this.searchHistory.unshift(query.toLowerCase());
-            this.searchHistory = this.searchHistory.slice(0, 8);
-            localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
-          }
 
           this.renderSocial();
         } catch (err) {
@@ -2832,15 +2879,6 @@
 
       handleUserSearch() {
         if (this.isBrowserMode()) return;
-        var val = document.getElementById('searchUserField').value.trim();
-        if (val.length >= 2) {
-          if (!this.searchHistory.includes(val.toLowerCase())) {
-            this.searchHistory.unshift(val.toLowerCase());
-            this.searchHistory = this.searchHistory.slice(0, 8);
-            localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
-            this.renderSearchHistory();
-          }
-        }
         this.renderSocial();
       }
 
@@ -2927,6 +2965,8 @@
       openUserProfile(userId) {
         var u = this.users.find(function (x) { return String(x.id) === String(userId); });
         if (!u) return;
+        var historyTerm = u.username || u.displayName || u.display_name || '';
+        if (historyTerm) this.saveSearchHistory(historyTerm);
         var av = u.avatar
           ? '<img src="' + u.avatar + '" alt="">'
           : (u.displayName || u.username)[0].toUpperCase();
@@ -3530,10 +3570,14 @@
 
       /* ─── Profile ─── */
       async renderProfile() {
+        var displayInput = document.getElementById('profDisplayName');
+        var usernameEl = document.getElementById('profUsername');
+        var mailEl = document.getElementById('profMail');
+
         if (!this.currentUser) {
-          document.getElementById('profUsername').textContent = 'Guest Mode';
-          document.getElementById('profMail').textContent = 'Effettua il login per tracciare metriche';
-          document.getElementById('profDisplayName').value = '';
+          if (usernameEl) usernameEl.textContent = 'Guest Mode';
+          if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
+          if (displayInput) displayInput.value = '';
           document.getElementById('countFollowers').textContent = '0';
           document.getElementById('countParticipated').textContent = '0';
           document.getElementById('profAvatar').innerHTML = '?';
@@ -3547,19 +3591,28 @@
         }
 
         var u = this.currentUser;
-        var displayInput = document.getElementById('profDisplayName');
-        if (document.activeElement !== displayInput) {
-          displayInput.value = u.displayName || u.username;
+        if (!u) {
+          if (displayInput) displayInput.value = '';
+          if (usernameEl) usernameEl.textContent = 'Guest Mode';
+          if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
+          document.getElementById('profAvatar').innerHTML = '?';
+          document.getElementById('profileHistoryContainer').innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Registrati per vedere la dashboard.</p>';
+          return;
         }
-        document.getElementById('profUsername').textContent = '@' + u.username;
-        document.getElementById('profMail').textContent = u.email;
-        document.getElementById('countFollowers').textContent = this.myFollowers.length;
-        document.getElementById('countParticipated').textContent = u.participated;
 
+        if (document.activeElement !== displayInput) {
+          displayInput.value = u?.display_name || u?.displayName || u?.username || '';
+        }
+        usernameEl.textContent = '@' + (u.username || '');
+        mailEl.textContent = u.email || '';
+        document.getElementById('countFollowers').textContent = this.myFollowers.length;
+        document.getElementById('countParticipated').textContent = u.participated || 0;
+
+        var displayLabel = u?.display_name || u?.displayName || u?.username || '?';
         if (u.avatar) {
           document.getElementById('profAvatar').innerHTML = '<img src="' + u.avatar + '" alt="">';
         } else {
-          document.getElementById('profAvatar').textContent = (u.displayName || u.username)[0].toUpperCase();
+          document.getElementById('profAvatar').textContent = displayLabel[0].toUpperCase();
         }
 
         var hist = document.getElementById('profileHistoryContainer');
@@ -3660,8 +3713,9 @@
 
       openSettingsModal() {
         if (!this.currentUser) return this.openAuthModal();
-        document.getElementById('settingsEmail').value = this.currentUser.email;
-        document.getElementById('settingsUsername').value = this.currentUser.username;
+        var u = this.currentUser;
+        document.getElementById('settingsEmail').value = u?.email || '';
+        document.getElementById('settingsUsername').value = u?.username || '';
         document.getElementById('settingsPassword').value = '';
         this.openModal('settingsModal');
       }
