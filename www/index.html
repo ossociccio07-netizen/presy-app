@@ -303,50 +303,45 @@
       margin: 0;
     }
 
-    .time-range-row {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      gap: 10px;
-      align-items: stretch;
+    .time-range-row,
+    .field-stack,
+    .filter-time-block .time-range-row {
+      display: flex !important;
+      flex-direction: column !important;
+      width: 100% !important;
+      gap: 10px !important;
+      align-items: stretch !important;
+      flex-wrap: nowrap !important;
     }
 
-    .time-range-row .input-group {
-      flex: none;
-      width: 100%;
-      min-width: 0;
-      margin-bottom: 0;
+    .time-range-row .input-group,
+    .field-stack .input-group,
+    .filter-time-block .input-group {
+      flex: none !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      margin-bottom: 0 !important;
     }
 
     .time-range-row .input-group label {
       white-space: normal;
     }
 
-    .time-range-row input[type="time"] {
-      width: 100%;
-      min-width: 0;
-      max-width: 100%;
+    .time-range-row input[type="time"],
+    .field-stack input[type="date"],
+    .field-stack input[type="time"] {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
       padding: 12px;
       font-size: 15px;
       box-sizing: border-box;
     }
 
-    .field-stack {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      gap: 10px;
-    }
-
-    .field-stack .input-group {
-      width: 100%;
-      margin-bottom: 0;
-      min-width: 0;
-    }
-
     .field-stack input,
     .field-stack select {
-      width: 100%;
+      width: 100% !important;
       box-sizing: border-box;
     }
 
@@ -797,7 +792,7 @@
           <p class="subtitle" id="socialSubtitle">Trova, segui e invita i tuoi amici.</p>
           <div id="browserFriendsSearch" class="browser-friends-search" style="display:none;">
             <div class="friends-search-bar">
-              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()" onkeydown="app.handleFriendsSearchKeydown(event)" onblur="app.commitFriendsSearchHistory()">
+              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()" onkeydown="app.handleFriendsSearchKeydown(event)">
               <button type="button" class="btn btn--sm btn--secondary" onclick="app.runFriendsSearchNow(true)">Cerca</button>
             </div>
             <p class="friends-search-hint">Cerca utenti registrati su Presy da browser — digita almeno 2 caratteri.</p>
@@ -805,7 +800,7 @@
           <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Sincronizza Rubrica</button>
           <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita i tuoi Amici</button>
           <div id="contactsSyncContainer"></div>
-          <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()" onkeydown="app.handleLegacySearchKeydown(event)" onblur="app.commitLegacySearchHistory()">
+          <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()" onkeydown="app.handleLegacySearchKeydown(event)">
           <div id="searchHistoryContainer" class="search-history"></div>
           <div id="socialUsersContainer" style="margin-top:14px;"></div>
         </div>
@@ -854,7 +849,11 @@
             <label class="photo-edit" for="profilePhotoInput">📷</label>
             <input type="file" id="profilePhotoInput" accept="image/*" hidden onchange="app.handleProfilePhoto(event)">
           </div>
-          <h2 id="profUsername">Guest Mode</h2>
+          <div class="input-group" style="margin:12px 0 0;text-align:left;">
+            <label for="profDisplayName">Nome visualizzato</label>
+            <input type="text" id="profDisplayName" class="display-name-input" placeholder="Il tuo nome pubblico" oninput="app.saveDisplayName()">
+          </div>
+          <h2 id="profUsername" class="username-display">Guest Mode</h2>
           <p class="subtitle" id="profMail" style="margin-bottom:0;">Nessun account collegato</p>
           <div class="row" style="justify-content:center;gap:24px;margin:14px 0;">
             <div class="stat-clickable" onclick="app.openFollowersModal()">
@@ -993,7 +992,7 @@
       <div class="modal-handle"></div>
       <h2>⚙️ Impostazioni</h2>
       <div class="input-group"><label>Email</label><input type="email" id="settingsEmail"></div>
-      <div class="input-group"><label>Username</label><input type="text" id="settingsUsername"></div>
+      <div class="input-group"><label>Username</label><input type="text" id="settingsUsername" class="username-input"></div>
       <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
       <button class="btn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
@@ -2496,12 +2495,6 @@
         }
       }
 
-      commitFriendsSearchHistory() {
-        if (!this.isBrowserMode()) return;
-        var query = this.sanitizeSearchQuery(document.getElementById('friendsSearchField').value);
-        if (query.length >= 2) this.saveSearchHistory(query);
-      }
-
       handleLegacySearchKeydown(e) {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -2510,12 +2503,6 @@
           this.renderSocial();
           if (e.target && e.target.blur) e.target.blur();
         }
-      }
-
-      commitLegacySearchHistory() {
-        if (this.isBrowserMode()) return;
-        var val = document.getElementById('searchUserField').value.trim();
-        if (val.length >= 2) this.saveSearchHistory(val);
       }
 
       async runFriendsSearchNow(saveToHistory) {
@@ -3569,15 +3556,35 @@
       }
 
       /* ─── Profile ─── */
-      async renderProfile() {
+      populateProfileFields(u) {
         var displayInput = document.getElementById('profDisplayName');
         var usernameEl = document.getElementById('profUsername');
         var mailEl = document.getElementById('profMail');
+        var settingsEmail = document.getElementById('settingsEmail');
+        var settingsUsername = document.getElementById('settingsUsername');
 
-        if (!this.currentUser) {
+        if (!u) {
+          if (displayInput) displayInput.value = '';
           if (usernameEl) usernameEl.textContent = 'Guest Mode';
           if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
-          if (displayInput) displayInput.value = '';
+          if (settingsEmail) settingsEmail.value = '';
+          if (settingsUsername) settingsUsername.value = '';
+          return false;
+        }
+
+        if (displayInput && document.activeElement !== displayInput) {
+          displayInput.value = u?.display_name || u?.displayName || u?.username || '';
+        }
+        if (usernameEl) usernameEl.textContent = '@' + (u?.username || '');
+        if (mailEl) mailEl.textContent = u?.email || '';
+        if (settingsEmail) settingsEmail.value = u?.email || '';
+        if (settingsUsername) settingsUsername.value = u?.username || '';
+        return true;
+      }
+
+      async renderProfile() {
+        if (!this.currentUser) {
+          this.populateProfileFields(null);
           document.getElementById('countFollowers').textContent = '0';
           document.getElementById('countParticipated').textContent = '0';
           document.getElementById('profAvatar').innerHTML = '?';
@@ -3591,22 +3598,16 @@
         }
 
         var u = this.currentUser;
-        if (!u) {
-          if (displayInput) displayInput.value = '';
-          if (usernameEl) usernameEl.textContent = 'Guest Mode';
-          if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
+        if (!this.populateProfileFields(u)) {
+          document.getElementById('countFollowers').textContent = '0';
+          document.getElementById('countParticipated').textContent = '0';
           document.getElementById('profAvatar').innerHTML = '?';
           document.getElementById('profileHistoryContainer').innerHTML = '<p style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Registrati per vedere la dashboard.</p>';
           return;
         }
 
-        if (document.activeElement !== displayInput) {
-          displayInput.value = u?.display_name || u?.displayName || u?.username || '';
-        }
-        usernameEl.textContent = '@' + (u.username || '');
-        mailEl.textContent = u.email || '';
         document.getElementById('countFollowers').textContent = this.myFollowers.length;
-        document.getElementById('countParticipated').textContent = u.participated || 0;
+        document.getElementById('countParticipated').textContent = u?.participated || 0;
 
         var displayLabel = u?.display_name || u?.displayName || u?.username || '?';
         if (u.avatar) {
@@ -3713,10 +3714,9 @@
 
       openSettingsModal() {
         if (!this.currentUser) return this.openAuthModal();
-        var u = this.currentUser;
-        document.getElementById('settingsEmail').value = u?.email || '';
-        document.getElementById('settingsUsername').value = u?.username || '';
-        document.getElementById('settingsPassword').value = '';
+        this.populateProfileFields(this.currentUser);
+        var passInput = document.getElementById('settingsPassword');
+        if (passInput) passInput.value = '';
         this.openModal('settingsModal');
       }
 
