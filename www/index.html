@@ -707,8 +707,9 @@
       align-items: center;
       gap: 4px;
     }
-    .username-feedback.success { color: #00ff66; }
-    .username-feedback.error { color: #ff3333; }
+    .username-feedback.success { color: #00ff66; font-weight: 600; }
+    .username-feedback.error { color: #ff3333; font-weight: 600; }
+    .username-feedback.pending { color: #ffcc00; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -1158,6 +1159,8 @@
         this._usernameSettingsDebounce = null;
         this._usernameRegAvailable = null;
         this._usernameSettingsAvailable = null;
+        this._usernameRegSeq = 0;
+        this._usernameSettingsSeq = 0;
       }
 
       _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
@@ -2048,13 +2051,14 @@
 
       updateAuthSubmitState() {
         var btn = document.getElementById('authSubmitBtn');
+        if (!btn) return;
         if (this.authMode === 'login') {
           btn.disabled = false;
           return;
         }
         var termsOk = document.getElementById('authAcceptTerms').checked;
         var privacyOk = document.getElementById('authAcceptPrivacy').checked;
-        var usernameVal = document.getElementById('authUsername').value.trim();
+        var usernameVal = (document.getElementById('authUsername').value || '').trim();
         var usernameOk = usernameVal.length >= 3 && this._usernameRegAvailable === true;
         btn.disabled = !(termsOk && privacyOk && usernameOk);
       }
@@ -2062,24 +2066,16 @@
       updateSettingsSubmitState() {
         var btn = document.getElementById('settingsSaveBtn');
         if (!btn) return;
-        var usernameVal = document.getElementById('settingsUsername').value.trim();
+        var usernameVal = (document.getElementById('settingsUsername').value || '').trim();
         if (!usernameVal || usernameVal.length < 3) {
           btn.disabled = true;
           return;
         }
-        if (this._usernameSettingsAvailable === false) {
-          btn.disabled = true;
-          return;
-        }
-        if (this._usernameSettingsAvailable === true) {
-          btn.disabled = false;
-          return;
-        }
         if (this.currentUser && usernameVal.toLowerCase() === (this.currentUser.username || '').trim().toLowerCase()) {
           btn.disabled = false;
-        } else {
-          btn.disabled = true;
+          return;
         }
+        btn.disabled = this._usernameSettingsAvailable !== true;
       }
 
       clearUsernameFeedback(type) {
@@ -2096,15 +2092,54 @@
         var el = document.getElementById(id);
         if (!el) return;
         el.textContent = message;
-        el.className = 'username-feedback' + (status === 'success' ? ' success' : status === 'error' ? ' error' : '');
+        var cls = 'username-feedback';
+        if (status === 'success') cls += ' success';
+        else if (status === 'error') cls += ' error';
+        else if (status === 'pending') cls += ' pending';
+        el.className = cls;
+      }
+
+      resetUsernameCheckState(type) {
+        if (type === 'reg') {
+          this._usernameRegAvailable = null;
+          this._usernameRegSeq += 1;
+          this.updateAuthSubmitState();
+        } else {
+          this._usernameSettingsAvailable = null;
+          this._usernameSettingsSeq += 1;
+          this.updateSettingsSubmitState();
+        }
       }
 
       handleUsernameInput(value, type) {
         var self = this;
         var debounceKey = type === 'reg' ? '_usernameRegDebounce' : '_usernameSettingsDebounce';
         clearTimeout(this[debounceKey]);
+        this[debounceKey] = null;
+
+        var normalized = (value || '').trim();
+
+        if (normalized.length < 3) {
+          this.clearUsernameFeedback(type);
+          this.resetUsernameCheckState(type);
+          return;
+        }
+
+        if (type === 'settings' && this.currentUser) {
+          var current = (this.currentUser.username || '').trim().toLowerCase();
+          if (normalized.toLowerCase() === current) {
+            this.setUsernameFeedback(type, 'success', '🟢 Nome disponibile!');
+            this._usernameSettingsAvailable = true;
+            this.updateSettingsSubmitState();
+            return;
+          }
+        }
+
+        this.resetUsernameCheckState(type);
+        this.setUsernameFeedback(type, 'pending', '🟡 Verifica in corso...');
+
         this[debounceKey] = setTimeout(function () {
-          self.checkUsernameRealtime(value, type);
+          self.checkUsernameRealtime(normalized, type);
         }, 400);
       }
 
@@ -2119,10 +2154,11 @@
 
         if (!this.supabaseReady) return true;
 
+        var queryUsername = normalized.toLowerCase();
         var result = await this.supabase
           .from('profiles')
           .select('username')
-          .eq('username', normalized.toLowerCase())
+          .eq('username', queryUsername)
           .maybeSingle();
 
         if (result.error) {
@@ -2130,29 +2166,42 @@
           return false;
         }
 
-        return !result.data;
+        if (result.data) return false;
+
+        var ilikeResult = await this.supabase
+          .from('profiles')
+          .select('username')
+          .ilike('username', normalized)
+          .maybeSingle();
+
+        if (ilikeResult.error) {
+          console.error('[Presy] verifyUsernameAvailable ilike:', ilikeResult.error);
+          return false;
+        }
+
+        return !ilikeResult.data;
       }
 
       async checkUsernameRealtime(username, type) {
         var normalized = (username || '').trim();
         var queryUsername = normalized.toLowerCase();
+        var seqKey = type === 'reg' ? '_usernameRegSeq' : '_usernameSettingsSeq';
+        var availKey = type === 'reg' ? '_usernameRegAvailable' : '_usernameSettingsAvailable';
+        var mySeq = this[seqKey];
 
         if (normalized.length < 3) {
           this.clearUsernameFeedback(type);
-          if (type === 'reg') {
-            this._usernameRegAvailable = null;
-            this.updateAuthSubmitState();
-          } else {
-            this._usernameSettingsAvailable = null;
-            this.updateSettingsSubmitState();
-          }
+          this[availKey] = null;
+          if (type === 'reg') this.updateAuthSubmitState();
+          else this.updateSettingsSubmitState();
           return;
         }
 
         if (type === 'settings' && this.currentUser) {
           var current = (this.currentUser.username || '').trim().toLowerCase();
           if (queryUsername === current) {
-            this.setUsernameFeedback(type, 'success', '✔️');
+            if (this[seqKey] !== mySeq) return;
+            this.setUsernameFeedback(type, 'success', '🟢 Nome disponibile!');
             this._usernameSettingsAvailable = true;
             this.updateSettingsSubmitState();
             return;
@@ -2160,14 +2209,11 @@
         }
 
         if (!this.supabaseReady) {
-          this.setUsernameFeedback(type, 'success', '✔️');
-          if (type === 'reg') {
-            this._usernameRegAvailable = true;
-            this.updateAuthSubmitState();
-          } else {
-            this._usernameSettingsAvailable = true;
-            this.updateSettingsSubmitState();
-          }
+          if (this[seqKey] !== mySeq) return;
+          this.setUsernameFeedback(type, 'success', '🟢 Nome disponibile!');
+          this[availKey] = true;
+          if (type === 'reg') this.updateAuthSubmitState();
+          else this.updateSettingsSubmitState();
           return;
         }
 
@@ -2180,36 +2226,24 @@
 
           if (result.error) throw result.error;
 
+          if (this[seqKey] !== mySeq) return;
+
           if (result.data) {
-            this.setUsernameFeedback(type, 'error', '❌ questo nome esiste già');
-            if (type === 'reg') {
-              this._usernameRegAvailable = false;
-              this.updateAuthSubmitState();
-            } else {
-              this._usernameSettingsAvailable = false;
-              this.updateSettingsSubmitState();
-            }
+            this.setUsernameFeedback(type, 'error', '🔴 Questo nome esiste già');
+            this[availKey] = false;
           } else {
-            this.setUsernameFeedback(type, 'success', '✔️');
-            if (type === 'reg') {
-              this._usernameRegAvailable = true;
-              this.updateAuthSubmitState();
-            } else {
-              this._usernameSettingsAvailable = true;
-              this.updateSettingsSubmitState();
-            }
+            this.setUsernameFeedback(type, 'success', '🟢 Nome disponibile!');
+            this[availKey] = true;
           }
         } catch (err) {
           console.error('[Presy] checkUsernameRealtime:', err);
-          this.setUsernameFeedback(type, 'error', 'Errore verifica username');
-          if (type === 'reg') {
-            this._usernameRegAvailable = false;
-            this.updateAuthSubmitState();
-          } else {
-            this._usernameSettingsAvailable = false;
-            this.updateSettingsSubmitState();
-          }
+          if (this[seqKey] !== mySeq) return;
+          this.setUsernameFeedback(type, 'error', '🔴 Questo nome esiste già');
+          this[availKey] = false;
         }
+
+        if (type === 'reg') this.updateAuthSubmitState();
+        else this.updateSettingsSubmitState();
       }
 
       setAuthMode(mode) {
@@ -2316,17 +2350,29 @@
         if (this.authMode === 'register' && !user) return alert('Inserisci uno username.');
 
         if (this.authMode === 'register') {
+          if (user.length < 3) {
+            alert('Lo username deve avere almeno 3 caratteri.');
+            return;
+          }
+          if (this._usernameRegAvailable !== true) {
+            alert('🔴 Questo username non è disponibile. Attendi la verifica o scegli un altro nome.');
+            return;
+          }
+          var regAvailable = await this.verifyUsernameAvailable(user, false);
+          if (!regAvailable) {
+            this.setUsernameFeedback('reg', 'error', '🔴 Questo nome esiste già');
+            this._usernameRegAvailable = false;
+            this.updateAuthSubmitState();
+            alert('🔴 Questo username è già in uso. Scegline un altro.');
+            return;
+          }
+
           var termsAccepted = document.getElementById('authAcceptTerms').checked;
           var privacyAccepted = document.getElementById('authAcceptPrivacy').checked;
           if (!termsAccepted || !privacyAccepted) {
             alert('⚠️ Devi accettare i Termini di Servizio e la Privacy Policy per creare un account.');
             this.updateAuthSubmitState();
             return;
-          }
-          if (user.length < 3) return alert('Lo username deve avere almeno 3 caratteri.');
-          if (this._usernameRegAvailable !== true) {
-            var regAvailable = await this.verifyUsernameAvailable(user, false);
-            if (!regAvailable) return alert('❌ Questo username è già in uso. Scegline un altro.');
           }
         }
 
@@ -3983,7 +4029,7 @@
         this.openModal('settingsModal');
         var settingsUsername = document.getElementById('settingsUsername');
         if (settingsUsername) {
-          this.checkUsernameRealtime(settingsUsername.value, 'settings');
+          this.handleUsernameInput(settingsUsername.value, 'settings');
         } else {
           this.updateSettingsSubmitState();
         }
@@ -4000,9 +4046,21 @@
         if (!username) return alert('Lo username non può essere vuoto.');
         if (username.length < 3) return alert('Lo username deve avere almeno 3 caratteri.');
 
-        if (this._usernameSettingsAvailable !== true) {
+        var currentUsername = (this.currentUser.username || '').trim().toLowerCase();
+        var newUsername = username.toLowerCase();
+        if (newUsername !== currentUsername) {
+          if (this._usernameSettingsAvailable !== true) {
+            alert('🔴 Questo username non è disponibile. Attendi la verifica o scegli un altro nome.');
+            return;
+          }
           var settingsAvailable = await this.verifyUsernameAvailable(username, true);
-          if (!settingsAvailable) return alert('❌ Questo username è già in uso. Scegline un altro.');
+          if (!settingsAvailable) {
+            this.setUsernameFeedback('settings', 'error', '🔴 Questo nome esiste già');
+            this._usernameSettingsAvailable = false;
+            this.updateSettingsSubmitState();
+            alert('🔴 Questo username è già in uso. Scegline un altro.');
+            return;
+          }
         }
 
         if (this.supabaseReady) {
