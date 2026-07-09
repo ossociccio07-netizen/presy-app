@@ -478,6 +478,38 @@
     /* Social / Amici */
     .user-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .user-info { display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1; min-width: 0; }
+
+    .search-result-item {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+      padding: 12px !important;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .search-result-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .search-result-item .btn {
+      width: 100% !important;
+      max-width: none !important;
+    }
+    .search-result-item .username-text {
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .search-result-item .user-row-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
     .avatar {
       width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
       background: linear-gradient(45deg, var(--neon-purple), var(--neon-blue));
@@ -731,6 +763,17 @@
       color: #aaa !important;
       border-color: #444 !important;
     }
+
+    .auth-guest-modal-buttons {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 12px !important;
+      width: 100% !important;
+      margin-top: 15px;
+    }
+    .auth-guest-modal-buttons .btn {
+      flex: 1 !important;
+    }
   </style>
 </head>
 <body>
@@ -960,7 +1003,7 @@
 
         <div class="input-group" id="authUsernameGroup">
           <label>Username</label>
-          <input type="text" id="authUsername" placeholder="es. Mario_Rossi" oninput="app.handleUsernameInput(event, 'reg')">
+          <input type="text" id="authUsername" placeholder="es. Mario_Rossi" maxlength="28" oninput="app.handleUsernameInput(event, 'reg')">
           <div id="reg-username-feedback" class="username-feedback"></div>
         </div>
         <div class="input-group" id="authPhoneGroup" style="display:none;">
@@ -1010,8 +1053,10 @@
           </div>
         </div>
 
-        <button type="button" class="btn" id="authSubmitBtn" onclick="app.executeAuth()">Accedi 🚀</button>
-        <button type="button" class="btn btn--secondary" onclick="app.closeAuthModal()">Annulla</button>
+        <div class="auth-guest-modal-buttons">
+          <button type="button" class="btn" id="authSubmitBtn" onclick="app.executeAuth()">Accedi 🚀</button>
+          <button type="button" class="btn btn--secondary" onclick="app.closeAuthModal()">Annulla</button>
+        </div>
       </div>
 
       <!-- Pannello Recupero Password -->
@@ -1462,6 +1507,10 @@
       getPartyIdKey(partyId) { return String(partyId); }
 
       qid(id) { return JSON.stringify(id); }
+
+      jsStr(val) {
+        return JSON.stringify(val == null ? '' : String(val));
+      }
 
       partyIdFromRoom(roomId) {
         return (roomId || '').replace(/^party_/, '');
@@ -3096,13 +3145,13 @@
               ? '<img src="' + u.avatar + '" alt="">'
               : label[0].toUpperCase();
             html += '<div class="user-row">' +
-              '<div class="user-info" onclick="app.openUserProfile(\'' + u.id + '\')">' +
+              '<div class="user-info" onclick="app.openUserProfile(' + self.jsStr(u.id) + ')">' +
                 '<div class="avatar">' + av + '</div>' +
                 '<div><div style="font-weight:700;">' + label + '</div>' +
                 '<div style="font-size:12px;color:var(--text-muted);">@' + u.username + ' · in rubrica</div></div>' +
               '</div>' +
               '<div class="user-row-actions">' +
-                '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(\'' + u.id + '\')">' +
+                '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">' +
                   (u.followedByMe ? 'Seguito' : 'Aggiungi') + '</button>' +
               '</div></div>';
           });
@@ -3324,16 +3373,18 @@
               ? '<img src="' + u.avatar + '" alt="">'
               : label[0].toUpperCase();
             var row = document.createElement('div');
-            row.className = 'user-row';
+            row.className = 'user-row search-result-item';
             row.innerHTML =
-              '<div class="user-info" onclick="app.openUserProfile(\'' + u.id + '\')">' +
+              '<div class="search-result-user-info user-info" onclick="app.openUserProfile(' + self.jsStr(u.id) + ')">' +
                 '<div class="avatar">' + avContent + '</div>' +
-                '<div><div style="font-weight:700;">' + label + '</div>' +
-                '<div style="font-size:12px;color:var(--text-muted);">@' + u.username +
+                '<div style="min-width:0;flex:1;">' +
+                  '<div class="username-text" style="font-weight:700;">' + label + '</div>' +
+                  '<div style="font-size:12px;color:var(--text-muted);">@' + u.username +
                   (u.phoneNumber ? ' · ' + u.phoneNumber : '') + '</div></div>' +
               '</div>' +
               '<div class="user-row-actions">' +
-                '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(\'' + u.id + '\')">' +
+                '<button class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.startDirectMessage(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">💬 DM</button>' +
+                '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">' +
                   (u.followedByMe ? 'Seguito' : 'Aggiungi agli Amici') + '</button>' +
               '</div>';
             container.appendChild(row);
@@ -3349,20 +3400,21 @@
 
         filtered.forEach(function (u) {
           var row = document.createElement('div');
-          row.className = 'user-row';
+          row.className = 'user-row search-result-item';
           var avContent = u.avatar
             ? '<img src="' + u.avatar + '" alt="">'
             : (u.displayName || u.username)[0].toUpperCase();
 
           row.innerHTML =
-            '<div class="user-info" onclick="app.openUserProfile(' + u.id + ')">' +
+            '<div class="search-result-user-info user-info" onclick="app.openUserProfile(' + self.jsStr(u.id) + ')">' +
               '<div class="avatar">' + avContent + '</div>' +
-              '<div><div style="font-weight:700;">@' + u.username + '</div>' +
-              '<div style="font-size:12px;color:var(--text-muted);">' + u.followers + ' follower · ' + u.participated + ' party</div></div>' +
+              '<div style="min-width:0;flex:1;">' +
+                '<div class="username-text" style="font-weight:700;">@' + u.username + '</div>' +
+                '<div style="font-size:12px;color:var(--text-muted);">' + u.followers + ' follower · ' + u.participated + ' party</div></div>' +
             '</div>' +
             '<div class="user-row-actions">' +
-              '<button class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.openDM(\'' + u.id + '\',\'' + u.username + '\')">💬 DM</button>' +
-              '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(\'' + u.id + '\')">' +
+              '<button class="btn btn--sm btn--secondary" onclick="event.stopPropagation();app.startDirectMessage(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">💬 DM</button>' +
+              '<button class="' + self.followButtonClass(u.followedByMe) + '" onclick="event.stopPropagation();app.toggleFollow(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">' +
                 (u.followedByMe ? 'Seguito' : 'Segui') + '</button>' +
             '</div>';
           container.appendChild(row);
@@ -3386,7 +3438,7 @@
         var av = u.avatar
           ? '<img src="' + u.avatar + '" alt="">'
           : (u.displayName || u.username)[0].toUpperCase();
-        var qUserId = JSON.stringify(String(userId));
+        var followBtnClass = u.followedByMe ? 'btn btn--followed' : 'btn';
         document.getElementById('userProfileModalBody').innerHTML =
           '<div class="avatar">' + av + '</div>' +
           '<h2>@' + u.username + '</h2>' +
@@ -3396,60 +3448,131 @@
             '<div><strong style="color:var(--neon-pink);">' + u.participated + '</strong><p style="font-size:12px;color:var(--text-muted);">Pre-Serata</p></div>' +
           '</div>' +
           '<div class="profile-action-btns">' +
-            '<button class="btn" onclick="app.openDM(' + qUserId + ',\'' + u.username + '\');app.closeModal(\'userProfileModal\')">Invia DM 💬</button>' +
-            '<button class="btn btn--secondary" onclick="app.toggleFollow(' + qUserId + ', true)">' +
-              (u.followedByMe ? 'Smetti di seguire' : 'Segui') + '</button>' +
+            '<button class="btn" onclick="app.startDirectMessage(' + this.jsStr(u.id) + ',' + this.jsStr(u.username) + ')">Invia DM 💬</button>' +
+            '<button class="' + followBtnClass + '" onclick="app.toggleFollow(' + this.jsStr(u.id) + ',' + this.jsStr(u.username) + ', true)">' +
+              (u.followedByMe ? 'Seguito' : 'Segui') + '</button>' +
           '</div>';
         this.openModal('userProfileModal');
       }
 
-      async toggleFollow(userId, refreshProfile) {
-        if (!this.currentUser) return this.openAuthModal(function () { app.toggleFollow(userId, refreshProfile); });
-        if (String(userId) === String(this.currentUser.id)) return;
+      async toggleFollow(targetUserId, targetUsername, refreshProfile) {
+        if (!this.currentUser) {
+          return this.openAuthModal(function () {
+            app.toggleFollow(targetUserId, targetUsername, refreshProfile);
+          });
+        }
+        if (String(targetUserId) === String(this.currentUser.id)) return;
 
-        var user = this.users.find(function (u) { return String(u.id) === String(userId); });
-        if (!user) return;
+        var user = this.users.find(function (u) { return String(u.id) === String(targetUserId); });
+        var username = targetUsername || (user ? user.username : 'utente');
 
-        if (user.followedByMe) {
-          if (!confirm('Vuoi davvero smettere di seguire @' + user.username + '?')) return;
+        if (!user) {
+          user = {
+            id: targetUserId,
+            username: username,
+            displayName: username,
+            followedByMe: !!this.followingIds[targetUserId],
+            followsMe: !!this.followerIds[targetUserId],
+            followers: 0,
+            participated: 0
+          };
+          this.mergeUserIntoList(user);
+        }
+
+        var isFollowing = !!this.followingIds[targetUserId] || !!user.followedByMe;
+
+        if (isFollowing) {
+          if (!confirm('Vuoi davvero smettere di seguire @' + username + '?')) return;
           if (this.supabaseReady) {
             var delResult = await this.supabase
               .from('follows')
               .delete()
               .eq('follower_id', this.currentUser.id)
-              .eq('following_id', userId);
+              .eq('following_id', targetUserId);
             if (delResult.error) {
               alert(delResult.error.message || 'Errore durante l\'unfollow.');
               return;
             }
           }
-          delete this.followingIds[userId];
+          delete this.followingIds[targetUserId];
           user.followedByMe = false;
           if (user.followers > 0) user.followers -= 1;
         } else {
           if (this.supabaseReady) {
             var insResult = await this.supabase
               .from('follows')
-              .insert({ follower_id: this.currentUser.id, following_id: userId });
+              .insert({ follower_id: this.currentUser.id, following_id: targetUserId });
             if (insResult.error) {
               alert(insResult.error.message || 'Impossibile seguire questo utente.');
               return;
             }
           }
-          this.followingIds[userId] = true;
+          this.followingIds[targetUserId] = true;
           user.followedByMe = true;
           user.followers = (user.followers || 0) + 1;
-          if (this.isMutualFollow(userId)) {
-            this.acceptDMRequest('dm_' + userId);
+          if (this.isMutualFollow(targetUserId)) {
+            this.acceptDMRequest('dm_' + targetUserId);
           }
         }
 
+        this.applyFollowFlagsToAllUsers();
         this.syncMyFollowersList();
         this.renderSocial();
         this.renderContactsSync();
         this.renderChat();
-        if (refreshProfile) await this.openUserProfile(userId);
-        this.showToast(user.followedByMe ? 'Ora segui @' + user.username + ' ✓' : 'Hai smesso di seguire @' + user.username);
+        if (refreshProfile) await this.openUserProfile(targetUserId);
+        this.showToast(user.followedByMe ? 'Ora segui @' + username + ' ✓' : 'Hai smesso di seguire @' + username);
+      }
+
+      async startDirectMessage(targetUserId, targetUsername) {
+        if (!this.currentUser) {
+          return this.openAuthModal(function () {
+            app.startDirectMessage(targetUserId, targetUsername);
+          });
+        }
+        if (String(targetUserId) === String(this.currentUser.id)) return;
+
+        this.closeModal('userProfileModal');
+        this.closeModal('newChatModal');
+
+        if (!this.isFriendConnection(targetUserId)) {
+          alert('Puoi chattare solo con amici: persone che segui o che ti seguono.');
+          return;
+        }
+
+        var roomId = 'dm_' + targetUserId;
+        if (this.acceptedDMs.indexOf(roomId) === -1) {
+          this.acceptedDMs.push(roomId);
+        }
+
+        this.currentChatRoom = roomId;
+        this.chatSearchQuery = '';
+        var searchField = document.getElementById('chatSearchField');
+        if (searchField) searchField.value = '';
+
+        this.chatSection = 'chat';
+        document.getElementById('chatTabMain').classList.add('active');
+        document.getElementById('chatTabRequests').classList.remove('active');
+        document.getElementById('chatMainPanel').style.display = 'block';
+        document.getElementById('chatRequestsPanel').style.display = 'none';
+
+        document.getElementById('chatRoomTitle').textContent = 'DM: @' + targetUsername;
+        document.getElementById('chatRoomSubtitle').textContent = this.isMutualFollow(targetUserId)
+          ? 'Follow reciproco ✓'
+          : 'Chat con amico';
+
+        this.switchTab('chat');
+
+        if (this.supabaseReady) {
+          await this.fetchMessagesFromSupabase(roomId);
+        }
+
+        await this.renderChat();
+        this.showToast('Chat con @' + targetUsername + ' aperta 💬');
+      }
+
+      openDM(userId, username) {
+        return this.startDirectMessage(userId, username);
       }
 
       /* ─── Chat ─── */
@@ -3487,43 +3610,6 @@
         this.renderChat();
       }
 
-      openDM(userId, username) {
-        if (!this.currentUser) return this.openAuthModal(function () { app.openDM(userId, username); });
-        if (String(userId) === String(this.currentUser.id)) return;
-
-        if (!this.isFriendConnection(userId)) {
-          alert('Puoi chattare solo con amici: persone che segui o che ti seguono.');
-          return;
-        }
-
-        var roomId = 'dm_' + userId;
-
-        if (!this.acceptedDMs.includes(roomId)) {
-          this.acceptedDMs.push(roomId);
-        }
-
-        this.currentChatRoom = roomId;
-        this.chatSearchQuery = '';
-        var searchField = document.getElementById('chatSearchField');
-        if (searchField) searchField.value = '';
-
-        this.chatSection = 'chat';
-        this.switchTab('chat');
-
-        document.getElementById('chatTabMain').classList.add('active');
-        document.getElementById('chatTabRequests').classList.remove('active');
-        document.getElementById('chatMainPanel').style.display = 'block';
-        document.getElementById('chatRequestsPanel').style.display = 'none';
-
-        document.getElementById('chatRoomTitle').textContent = 'DM: @' + username;
-        document.getElementById('chatRoomSubtitle').textContent = this.isMutualFollow(userId)
-          ? 'Follow reciproco ✓'
-          : 'Chat con amico';
-
-        this.renderChat();
-        this.showToast('Chat con @' + username + ' aperta 💬');
-      }
-
       async openNewChatModal() {
         if (!this.currentUser) return this.openAuthModal(function () { app.openNewChatModal(); });
 
@@ -3541,16 +3627,14 @@
 
         var self = this;
         list.innerHTML = friends.map(function (u) {
-          var safeName = (u.username || '').replace(/'/g, '\\\'');
-          return '<div class="chat-search-result" onclick="app.startChatWithFriend(\'' + u.id + '\',\'' + safeName + '\')">' +
+          return '<div class="chat-search-result" onclick="app.startChatWithFriend(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">' +
             '<span>💬 @' + u.username + '</span>' +
             '<span style="color:var(--neon-purple);">→</span></div>';
         }).join('');
       }
 
       startChatWithFriend(userId, username) {
-        this.closeModal('newChatModal');
-        this.openDM(userId, username);
+        this.startDirectMessage(userId, username);
       }
 
       handleChatSearch() {
@@ -3583,7 +3667,7 @@
           return u.username.toLowerCase().includes(q) || (u.displayName && u.displayName.toLowerCase().includes(q));
         }).forEach(function (u) {
           var hasChat = self.acceptedDMs.includes('dm_' + u.id);
-          html += '<div class="chat-search-result' + (hasChat ? '' : ' chat-search-result--new') + '" onclick="app.openDM(\'' + u.id + '\',\'' + u.username + '\')">' +
+          html += '<div class="chat-search-result' + (hasChat ? '' : ' chat-search-result--new') + '" onclick="app.startDirectMessage(' + self.jsStr(u.id) + ',' + self.jsStr(u.username) + ')">' +
             '<span>💬 @' + u.username + (hasChat ? '' : ' <small style="color:var(--neon-pink);">· Nuova chat</small>') + '</span>' +
             '<span style="color:var(--neon-purple);">→</span></div>';
         });
@@ -3697,7 +3781,7 @@
           btn.className = 'btn btn--sm ' + (isActive ? 'room-btn--active' : 'btn--secondary');
           btn.textContent = '💬 @' + u.username;
           btn.onclick = function () {
-            self.openDM(u.id, u.username);
+            self.startDirectMessage(u.id, u.username);
           };
           selector.appendChild(btn);
         });
