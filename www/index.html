@@ -303,7 +303,7 @@
       margin: 0;
     }
 
-    /* Fix mobile: orari e date sempre in colonna a tutta larghezza */
+    /* Fix mobile: orari e date in colonna, input compatti ed eleganti */
     .time-range-row,
     #view-create .field-stack,
     .field-stack,
@@ -312,16 +312,38 @@
       flex-direction: column !important;
       width: 100% !important;
       gap: 10px !important;
-      align-items: stretch !important;
+      align-items: flex-start !important;
       flex-wrap: nowrap !important;
     }
 
-    .time-range-row .input-group,
-    .field-stack .input-group,
-    .filter-time-block .input-group {
-      flex: none !important;
+    /* Stringi gli input di tipo data e ora */
+    input[type="date"],
+    input[type="time"] {
       width: 100% !important;
-      max-width: 100% !important;
+      max-width: 180px !important; /* Dimensione ideale per mobile senza tagli */
+      box-sizing: border-box !important;
+      color-scheme: dark;
+      min-height: 46px;
+      min-width: 0 !important;
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
+    .datetime-row input {
+      width: 100% !important;
+      max-width: 180px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Se questi input sono dentro un contenitore incolonnato, evita che il blocco intero si allarghi a vuoto */
+    .time-range-row .input-group,
+    .datetime-row .input-group,
+    .field-stack .input-group,
+    .input-group--full:has(input[type="date"]),
+    .input-group--full:has(input[type="time"]) {
+      width: auto !important;
+      max-width: 180px !important;
+      flex: none !important;
       min-width: 0 !important;
       margin-bottom: 0 !important;
     }
@@ -330,36 +352,10 @@
       white-space: normal;
     }
 
-    .time-range-row input[type="time"],
-    .field-stack input[type="date"],
-    .field-stack input[type="time"] {
-      width: 100% !important;
-      min-width: 0 !important;
-      max-width: 100% !important;
-      padding: 12px;
-      font-size: 15px;
-      box-sizing: border-box;
-    }
-
-    .field-stack input,
-    .field-stack select {
-      width: 100% !important;
-      box-sizing: border-box;
-    }
-
-    input[type="date"],
-    input[type="time"],
-    .datetime-row input {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-      min-width: 0 !important;
-    }
-
     #view-create .input-group,
     #view-create .field-stack {
       min-width: 0;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .contacts-section-title {
@@ -443,12 +439,6 @@
       font-size: 13px;
       color: var(--text-muted);
       line-height: 1.5;
-    }
-
-    input[type="date"],
-    input[type="time"] {
-      color-scheme: dark;
-      min-height: 46px;
     }
 
     .location-link {
