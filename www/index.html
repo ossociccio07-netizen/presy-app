@@ -1060,6 +1060,9 @@
       </div>
       <div class="input-group"><label>Numero di telefono</label><input type="tel" id="settingsPhone" class="phone-input" placeholder="Es. 3331234567" inputmode="tel" autocomplete="tel"></div>
       <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
+      <a href="https://wa.me/393318316081?text=Ciao%20Andrea,%20ho%20bisogno%20di%20assistenza%20con%20Presy" target="_blank" rel="noopener noreferrer" class="btn" style="width: 100%; background-color: #25D366; color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; margin-top: 15px; margin-bottom: 15px; border-radius: 8px; padding: 12px; font-weight: bold;">
+        💬 Assistenza h24 (WhatsApp)
+      </a>
       <button type="button" class="btn" id="settingsSaveBtn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
       <div class="settings-actions" style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
@@ -2946,8 +2949,8 @@
             .select('id, username, display_name, avatar_url, phone_number')
             .or(orFilter);
 
-          if (this.currentUser && this.currentUser.id) {
-            query = query.ne('id', this.currentUser.id);
+          if (this.currentUser?.id) {
+            query = query.neq('id', this.currentUser.id);
           }
 
           var result = await query;
