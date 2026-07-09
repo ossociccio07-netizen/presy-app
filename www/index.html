@@ -1518,6 +1518,10 @@
         return JSON.stringify(val == null ? '' : String(val));
       }
 
+      sqStr(val) {
+        return "'" + String(val == null ? '' : val).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+      }
+
       partyIdFromRoom(roomId) {
         return (roomId || '').replace(/^party_/, '');
       }
@@ -3467,8 +3471,8 @@
           ? '<img src="' + u.avatar + '" alt="">'
           : (u.displayName || u.username)[0].toUpperCase();
         var followBtnClass = u.followedByMe ? 'btn btn--followed' : 'btn';
-        var qId = this.jsStr(String(targetUserId));
-        var qUser = this.jsStr(String(targetUsername));
+        var safeId = this.sqStr(String(targetUserId));
+        var safeUser = this.sqStr(String(targetUsername));
 
         document.getElementById('userProfileModalBody').innerHTML =
           '<div class="avatar">' + av + '</div>' +
@@ -3481,15 +3485,17 @@
               '<p style="font-size:12px;color:var(--text-muted);">Pre-Serata</p></div>' +
           '</div>' +
           '<div class="profile-action-btns">' +
-            '<button class="btn" onclick="app.startDirectMessage(' + qId + ', ' + qUser + ')">Invia DM 💬</button>' +
-            '<button class="' + followBtnClass + '" data-profile-follow-btn onclick="app.toggleFollow(' + qId + ', ' + qUser + ')">' +
+            '<button type="button" class="btn" onclick="app.startDirectMessage(' + safeId + ', ' + safeUser + ')">Invia DM 💬</button>' +
+            '<button type="button" class="' + followBtnClass + '" data-profile-follow-btn onclick="app.toggleFollow(' + safeId + ', ' + safeUser + ')">' +
               (u.followedByMe ? 'Seguito' : 'Segui') + '</button>' +
           '</div>';
         this.openModal('userProfileModal');
       }
 
       async toggleFollow(targetUserId, targetUsername) {
+        console.log('👉 Click su toggleFollow intercettato per:', targetUserId, targetUsername);
         if (!this.currentUser) {
+          alert('Devi essere loggato per seguire gli utenti!');
           return this.openAuthModal(function () {
             app.toggleFollow(targetUserId, targetUsername);
           });
@@ -3563,6 +3569,7 @@
       }
 
       startDirectMessage(targetUserId, targetUsername) {
+        console.log('👉 Click su startDirectMessage intercettato per:', targetUserId, targetUsername);
         if (!this.currentUser) {
           return this.openAuthModal(function () {
             app.startDirectMessage(targetUserId, targetUsername);
@@ -3576,7 +3583,7 @@
         this.activeChatUserId = targetUserId;
         this.activeChatUsername = targetUsername;
 
-        this.switchTab('chats');
+        this.switchTab('chat');
 
         if (typeof this.loadChatMessages === 'function') {
           this.loadChatMessages(targetUserId);
