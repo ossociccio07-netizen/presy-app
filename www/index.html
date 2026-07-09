@@ -303,7 +303,9 @@
       margin: 0;
     }
 
+    /* Fix mobile: orari e date sempre in colonna a tutta larghezza */
     .time-range-row,
+    #view-create .field-stack,
     .field-stack,
     .filter-time-block .time-range-row {
       display: flex !important;
@@ -2466,6 +2468,7 @@
       }
 
       saveSearchHistory(term) {
+        /* Salvataggio cronologia: solo Enter, pulsante Cerca, tap su profilo */
         var normalized = this.sanitizeSearchQuery(term).toLowerCase();
         if (normalized.length < 2) return;
         if (this.searchHistory.indexOf(normalized) !== -1) {
@@ -2478,6 +2481,7 @@
       }
 
       handleFriendsSearchInput() {
+        /* Ricerca live: nessun salvataggio in cronologia su input */
         var self = this;
         clearTimeout(this._friendSearchDebounce);
         this._friendSearchDebounce = setTimeout(function () {
@@ -2865,6 +2869,7 @@
       }
 
       handleUserSearch() {
+        /* Filtro locale: nessun salvataggio in cronologia su input */
         if (this.isBrowserMode()) return;
         this.renderSocial();
       }
@@ -3569,7 +3574,7 @@
           if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
           if (settingsEmail) settingsEmail.value = '';
           if (settingsUsername) settingsUsername.value = '';
-          return false;
+          return;
         }
 
         if (displayInput && document.activeElement !== displayInput) {
@@ -3579,7 +3584,6 @@
         if (mailEl) mailEl.textContent = u?.email || '';
         if (settingsEmail) settingsEmail.value = u?.email || '';
         if (settingsUsername) settingsUsername.value = u?.username || '';
-        return true;
       }
 
       async renderProfile() {
@@ -3598,7 +3602,8 @@
         }
 
         var u = this.currentUser;
-        if (!this.populateProfileFields(u)) {
+        if (!u) {
+          this.populateProfileFields(null);
           document.getElementById('countFollowers').textContent = '0';
           document.getElementById('countParticipated').textContent = '0';
           document.getElementById('profAvatar').innerHTML = '?';
@@ -3606,11 +3611,13 @@
           return;
         }
 
+        this.populateProfileFields(u);
+
         document.getElementById('countFollowers').textContent = this.myFollowers.length;
         document.getElementById('countParticipated').textContent = u?.participated || 0;
 
         var displayLabel = u?.display_name || u?.displayName || u?.username || '?';
-        if (u.avatar) {
+        if (u?.avatar) {
           document.getElementById('profAvatar').innerHTML = '<img src="' + u.avatar + '" alt="">';
         } else {
           document.getElementById('profAvatar').textContent = displayLabel[0].toUpperCase();
