@@ -312,6 +312,7 @@
     }
 
     .time-range-row .input-group {
+      flex: none;
       width: 100%;
       min-width: 0;
       margin-bottom: 0;
@@ -330,51 +331,100 @@
       box-sizing: border-box;
     }
 
-    .stack-fields {
+    .field-stack {
       display: flex;
       flex-direction: column;
       gap: 8px;
       width: 100%;
     }
 
-    .stack-fields .input-group {
+    .field-stack .input-group {
       width: 100%;
       margin-bottom: 0;
-    }
-
-    .rubrica-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin: 14px 0 8px;
-    }
-
-    .rubrica-section-title:first-child { margin-top: 0; }
-
-    .rubrica-invite-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-
-    .rubrica-invite-row__meta {
-      flex: 1;
       min-width: 0;
     }
 
-    .rubrica-invite-row__name {
+    .contacts-section-title {
+      font-size: 13px;
       font-weight: 700;
-      font-size: 14px;
+      color: var(--text-muted);
+      margin: 16px 0 8px;
+      letter-spacing: 0.02em;
     }
 
-    .rubrica-invite-row__phone {
+    .contacts-sync-status {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .contacts-invite-row {
+      opacity: 0.92;
+    }
+
+    .contacts-native-banner {
+      text-align: center;
+      padding: 18px 14px;
+      border-radius: 14px;
+      border: 1px dashed rgba(0, 240, 255, 0.35);
+      background: rgba(0, 240, 255, 0.06);
+      margin-bottom: 12px;
+    }
+
+    .contacts-native-banner__title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .contacts-invite-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .browser-friends-search {
+      margin-bottom: 14px;
+    }
+
+    .friends-search-bar {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .friends-search-bar input {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+    }
+
+    .friends-search-bar .btn {
+      width: auto;
+      flex-shrink: 0;
+      padding: 0 16px;
+      align-self: stretch;
+      display: flex;
+      align-items: center;
+    }
+
+    .friends-search-hint {
       font-size: 12px;
       color: var(--text-muted);
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+
+    .contacts-browser-help {
+      text-align: center;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(157, 78, 221, 0.08);
+      border: 1px solid rgba(157, 78, 221, 0.25);
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
     }
 
     input[type="date"],
@@ -684,7 +734,7 @@
       <section id="view-create" class="app-view">
         <div class="card">
           <h2>Crea un Pre-Serata</h2>
-          <p class="subtitle">Imposta il vibe e attira i tuoi Amici. La spesa si calcola in stanza.</p>
+          <p class="subtitle">Imposta il vibe e attira i tuoi amici. La spesa si calcola in stanza.</p>
           <div class="input-group">
             <label>Nome del Pre-Party / Vibe</label>
             <input type="text" id="pName" placeholder="Es. Warmup Carico Sotto Le Stelle 🚀">
@@ -699,7 +749,7 @@
               <input type="text" id="pProvincia" placeholder="Es. IM, TO">
             </div>
           </div>
-          <div class="stack-fields">
+          <div class="field-stack">
             <div class="input-group">
               <label>Data</label>
               <input type="date" id="pData">
@@ -738,11 +788,17 @@
       <section id="view-social" class="app-view">
         <div class="card">
           <h2>Amici</h2>
-          <p class="subtitle">Trova, segui e invita i tuoi Amici.</p>
-          <h3 style="font-size:14px;font-weight:700;margin-bottom:8px;">Invita Amici dalla rubrica</h3>
+          <p class="subtitle" id="socialSubtitle">Trova, segui e invita i tuoi amici.</p>
+          <div id="browserFriendsSearch" class="browser-friends-search" style="display:none;">
+            <div class="friends-search-bar">
+              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()">
+              <button type="button" class="btn btn--sm btn--secondary" onclick="app.runFriendsSearchNow()">Cerca</button>
+            </div>
+            <p class="friends-search-hint">Cerca utenti registrati su Presy da browser — digita almeno 2 caratteri.</p>
+          </div>
           <button class="btn btn--secondary" style="margin-bottom:10px;" onclick="app.syncContacts()">📇 Sincronizza Rubrica</button>
-          <div id="contactsRubricaContainer" style="display:none;margin-bottom:14px;"></div>
           <button class="btn btn--green" style="margin-bottom:14px;" onclick="app.copyInviteLink()">🔗 Invita i tuoi Amici</button>
+          <div id="contactsSyncContainer"></div>
           <input type="text" id="searchUserField" placeholder="Cerca username..." oninput="app.handleUserSearch()">
           <div id="searchHistoryContainer" class="search-history"></div>
           <div id="socialUsersContainer" style="margin-top:14px;"></div>
@@ -983,6 +1039,16 @@
     </div>
   </div>
 
+  <!-- RUBRICA SOLO APP NATIVA -->
+  <div class="modal" id="contactsNativeModal">
+    <div class="modal-content">
+      <div class="modal-handle"></div>
+      <h2>Disponibile solo su App Store 📱</h2>
+      <p class="subtitle">Apri Presy dal telefono per sincronizzare i tuoi amici!</p>
+      <button type="button" class="btn" onclick="app.closeModal('contactsNativeModal')">Ho capito</button>
+    </div>
+  </div>
+
   <!-- MEDIA LIGHTBOX -->
   <div class="lightbox" id="mediaLightbox" onclick="app.closeLightbox(event)">
     <button type="button" class="lightbox__close" onclick="app.closeLightbox(event)">×</button>
@@ -1038,7 +1104,9 @@
         this.adminPendingItems = [];
         this._authListenerRegistered = false;
         this.profileCache = {};
-        this.contactsRubrica = { matched: [], invite: [], syncing: false };
+        this.contactsSync = { onPresy: [], invite: [], loading: false, status: '' };
+        this.browserSearchResults = [];
+        this._friendSearchDebounce = null;
       }
 
       _makeParty(id, name, citta, provincia, data, orario, geoloc, club, ticketLink, privacy, creator, participants) {
@@ -1057,7 +1125,9 @@
         this.initSupabaseAuth();
         this.populateProvinceFilter();
         this.renderExplore();
+        this.updateSocialPanelUI();
         this.renderSocial();
+        this.renderContactsSync();
         this.renderSearchHistory();
         this.renderChat();
       }
@@ -1690,7 +1760,7 @@
         return 'Entra nel pre-serata di Presy per stasera! 🚀 Vibe: ' + party.name +
           ' — Ci vediamo alle ' + party.orario + ' a ' + party.geoloc +
           ' e dopo si vola all\'omonimo ' + party.club +
-          '! Entra tra gli Amici qui: https://presy.app/party=' + party.id;
+          '! Entra tra gli amici qui: https://presy.app/party=' + party.id;
       }
 
       async shareParty(partyId) {
@@ -1722,10 +1792,10 @@
           } else {
             throw new Error('Clipboard non disponibile');
           }
-          this.showToast('Link copiato, mandalo in chat agli Amici! 📲');
+          this.showToast('Link copiato, mandalo agli amici! 📲');
         } catch (err) {
           prompt('Copia e condividi:', text);
-          this.showToast('Link copiato, mandalo in chat agli Amici! 📲');
+          this.showToast('Link copiato, mandalo agli amici! 📲');
         }
       }
 
@@ -1876,10 +1946,10 @@
         if (tabId === 'profile') this.renderProfile();
         if (tabId === 'chat') this.renderChat();
         if (tabId === 'social') {
+          this.updateSocialPanelUI();
           this.renderSocial();
-          if (this.contactsRubrica.matched.length || this.contactsRubrica.invite.length) {
-            this.renderContactsRubrica();
-          }
+          this.renderContactsSync();
+          if (this.isNativeCapacitor()) this.syncContacts();
         }
         if (tabId === 'explore') { this.populateProvinceFilter(); this.renderExplore(); }
       }
@@ -2244,7 +2314,7 @@
             this.currentUser.participated++;
             this.persistMockSession();
           }
-          this.showToast('Sei tra gli Amici di ' + party.name + '! 🎉');
+          this.showToast('Sei tra gli amici di ' + party.name + '! 🎉');
         }
         this.currentChatRoom = 'party_' + party.id;
         this.switchTab('chat');
@@ -2317,12 +2387,12 @@
 
       /* ─── Amici / Social ─── */
 
-      normalizePhoneNumber(phone) {
-        if (!phone) return '';
-        var digits = String(phone).replace(/\D/g, '');
-        if (digits.startsWith('0039')) digits = digits.slice(4);
-        else if (digits.startsWith('39') && digits.length > 10) digits = digits.slice(2);
-        if (digits.startsWith('0') && digits.length > 9) digits = digits.slice(1);
+      normalizePhone(raw) {
+        if (!raw) return '';
+        var digits = String(raw).replace(/\D/g, '');
+        if (digits.indexOf('0039') === 0) digits = digits.slice(4);
+        else if (digits.indexOf('39') === 0 && digits.length > 10) digits = digits.slice(2);
+        if (digits.length > 10) digits = digits.slice(-10);
         return digits;
       }
 
@@ -2333,203 +2403,435 @@
           email: row.email,
           displayName: row.display_name || row.username,
           avatar: row.avatar_url || null,
-          phoneNumber: row.phone_number || null,
           followers: 0,
           participated: row.participated || 0,
           followedByMe: false,
-          followsMe: false
+          followsMe: false,
+          phoneNumber: row.phone_number
         };
       }
 
       mergeUserIntoList(user) {
-        var idx = this.users.findIndex(function (u) { return u.id === user.id; });
-        if (idx === -1) {
-          this.users.push(user);
-        } else {
-          this.users[idx] = Object.assign({}, this.users[idx], user);
+        var existing = this.users.find(function (u) { return u.id === user.id; });
+        if (existing) return existing;
+        this.users.push(user);
+        return user;
+      }
+
+      isNativeCapacitor() {
+        return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      }
+
+      isBrowserMode() {
+        return !this.isNativeCapacitor();
+      }
+
+      updateSocialPanelUI() {
+        var isBrowser = this.isBrowserMode();
+        var browserSearch = document.getElementById('browserFriendsSearch');
+        var legacySearch = document.getElementById('searchUserField');
+        var history = document.getElementById('searchHistoryContainer');
+        var subtitle = document.getElementById('socialSubtitle');
+        if (browserSearch) browserSearch.style.display = isBrowser ? 'block' : 'none';
+        if (legacySearch) legacySearch.style.display = isBrowser ? 'none' : 'block';
+        if (history) history.style.display = isBrowser ? 'none' : 'block';
+        if (subtitle) {
+          subtitle.textContent = isBrowser
+            ? 'Cerca amici per username o numero, oppure sincronizza la rubrica dall\'app.'
+            : 'Trova, segui e invita i tuoi amici.';
         }
       }
 
-      async syncContacts() {
-        if (!this.currentUser) return this.openAuthModal(function () { app.syncContacts(); });
+      sanitizeSearchQuery(raw) {
+        return String(raw || '').trim().replace(/^@+/, '').replace(/[%_,]/g, '');
+      }
 
-        var panel = document.getElementById('contactsRubricaContainer');
-        panel.style.display = 'block';
-        panel.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Sincronizzazione rubrica in corso...</p>';
+      showContactsBrowserHelp() {
+        this.contactsSync.loading = false;
+        this.contactsSync.onPresy = [];
+        this.contactsSync.invite = [];
+        var container = document.getElementById('contactsSyncContainer');
+        if (container) {
+          container.innerHTML =
+            '<div class="contacts-browser-help">' +
+              'Per sincronizzare l\'intera rubrica in un colpo solo, scarica l\'App ufficiale di Presy dallo Store! ' +
+              'Da browser puoi usare la barra di ricerca qui sopra.' +
+            '</div>';
+        }
+      }
 
-        if (this.contactsRubrica.syncing) return;
-        this.contactsRubrica.syncing = true;
+      handleFriendsSearchInput() {
+        var self = this;
+        clearTimeout(this._friendSearchDebounce);
+        this._friendSearchDebounce = setTimeout(function () {
+          self.runFriendsSearchNow();
+        }, 350);
+      }
+
+      async runFriendsSearchNow() {
+        var raw = document.getElementById('friendsSearchField').value;
+        var query = this.sanitizeSearchQuery(raw);
+        if (query.length < 2) {
+          this.browserSearchResults = [];
+          this.renderSocial();
+          return;
+        }
+        if (!this.supabaseReady) {
+          this.showToast('Supabase non configurato.');
+          return;
+        }
+        await this.searchFriendsOnSupabase(query);
+      }
+
+      async searchFriendsOnSupabase(query) {
+        var self = this;
+        var container = document.getElementById('socialUsersContainer');
+        if (container) {
+          container.innerHTML = '<p class="contacts-sync-status">Ricerca in corso...</p>';
+        }
 
         try {
-          var bridge = await import('./contacts-bridge.mjs');
-          var nativeContacts = await bridge.fetchNativeContacts();
+          var phoneQuery = this.normalizePhone(query) || query;
+          var orFilter = 'username.ilike.%' + query + '%,phone_number.like.%' + phoneQuery + '%';
 
-          var phoneMap = {};
-          var inviteCandidates = [];
+          var result = await this.supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url, phone_number')
+            .or(orFilter);
 
-          nativeContacts.forEach(function (contact) {
-            var displayName = (contact.name && contact.name.display) ||
-              (contact.name && contact.name.given ? (contact.name.given + ' ' + (contact.name.family || '')).trim() : '') ||
-              'Contatto';
-            var phones = (contact.phones || []).map(function (p) { return p.number; }).filter(Boolean);
-            if (!phones.length) return;
+          if (result.error) throw result.error;
 
-            var normalizedPhones = phones.map(function (num) {
-              return app.normalizePhoneNumber(num);
-            }).filter(Boolean);
-
-            if (!normalizedPhones.length) return;
-
-            normalizedPhones.forEach(function (norm) {
-              if (!phoneMap[norm]) {
-                phoneMap[norm] = { name: displayName, rawPhones: phones, normalized: norm };
-              }
-            });
-
-            inviteCandidates.push({
-              name: displayName,
-              rawPhones: phones,
-              normalizedPhones: normalizedPhones
-            });
+          var utentiTrovati = (result.data || []).filter(function (row) {
+            return !self.currentUser || row.id !== self.currentUser.id;
           });
 
-          var uniquePhones = Object.keys(phoneMap);
-          if (!uniquePhones.length) {
-            panel.innerHTML = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Nessun numero trovato nella rubrica.</p>';
-            this.contactsRubrica = { matched: [], invite: [], syncing: false };
-            return;
+          this.browserSearchResults = utentiTrovati.map(function (row) {
+            return self.mergeUserIntoList(self.profileRowToUser(row));
+          });
+
+          if (query.length >= 2 && !this.searchHistory.includes(query.toLowerCase())) {
+            this.searchHistory.unshift(query.toLowerCase());
+            this.searchHistory = this.searchHistory.slice(0, 8);
+            localStorage.setItem('presy_search_history', JSON.stringify(this.searchHistory));
           }
 
-          var matchedProfiles = [];
-          if (this.supabaseReady) {
-            var profilesResult = await this.supabase
-              .from('profiles')
-              .select('*')
-              .not('phone_number', 'is', null)
-              .neq('id', this.currentUser.id);
-            if (profilesResult.error) throw profilesResult.error;
-            matchedProfiles = profilesResult.data || [];
-          }
-
-          var self = this;
-          var seenProfileIds = {};
-          var matched = [];
-
-          matchedProfiles.forEach(function (row) {
-            if (seenProfileIds[row.id]) return;
-            var profileNorm = self.normalizePhoneNumber(row.phone_number);
-            if (!profileNorm || !phoneMap[profileNorm]) return;
-            seenProfileIds[row.id] = true;
-            var user = self.profileRowToUser(row);
-            self.mergeUserIntoList(user);
-            matched.push({
-              profile: user,
-              contactName: phoneMap[profileNorm].name
-            });
-          });
-
-          var matchedNormSet = {};
-          matched.forEach(function (m) {
-            matchedNormSet[self.normalizePhoneNumber(m.profile.phoneNumber)] = true;
-          });
-
-          var invite = inviteCandidates.filter(function (c) {
-            return !c.normalizedPhones.some(function (n) { return matchedNormSet[n]; });
-          });
-
-          this.contactsRubrica = { matched: matched, invite: invite, syncing: false };
-          this.renderContactsRubrica();
           this.renderSocial();
-          this.showToast(matched.length + ' Amici su Presy · ' + invite.length + ' da invitare');
         } catch (err) {
-          console.error('[Presy] syncContacts:', err);
-          panel.innerHTML = '<p style="font-size:13px;color:#ff4757;text-align:center;padding:16px;">' +
-            (err.message || 'Impossibile sincronizzare la rubrica.') + '</p>';
-          this.contactsRubrica.syncing = false;
+          console.error('[Presy Friends Search]', err);
+          this.browserSearchResults = [];
+          if (container) {
+            container.innerHTML = '<p class="contacts-sync-status">Errore ricerca: ' + (err.message || 'riprova') + '</p>';
+          }
         }
       }
 
-      renderContactsRubrica() {
-        var panel = document.getElementById('contactsRubricaContainer');
-        if (!panel) return;
-        panel.style.display = 'block';
+      async tryBrowserContactPicker() {
+        if (!navigator.contacts || typeof navigator.contacts.select !== 'function') {
+          return false;
+        }
+        if (!this.supabaseReady || !this.currentUser) return false;
 
         var self = this;
+        try {
+          var picked = await navigator.contacts.select(['name', 'tel'], { multiple: true });
+          if (!picked || !picked.length) return false;
+
+          var phoneSet = {};
+          picked.forEach(function (c) {
+            (c.tel || []).forEach(function (tel) {
+              var cleaned = self.normalizePhone(tel);
+              if (cleaned) phoneSet[cleaned] = true;
+            });
+          });
+
+          var phones = Object.keys(phoneSet);
+          if (!phones.length) return false;
+
+          this.contactsSync.loading = true;
+          this.contactsSync.status = 'Contatti selezionati — ricerca su Presy...';
+          this.renderContactsSync();
+
+          var amiciTrovati = [];
+          var chunkSize = 80;
+          for (var i = 0; i < phones.length; i += chunkSize) {
+            var chunk = phones.slice(i, i + chunkSize);
+            var queryResult = await this.supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url, phone_number')
+              .in('phone_number', chunk);
+            if (queryResult.error) throw queryResult.error;
+            amiciTrovati = amiciTrovati.concat(queryResult.data || []);
+          }
+
+          var profileByPhone = {};
+          amiciTrovati.forEach(function (row) {
+            var key = self.normalizePhone(row.phone_number);
+            if (key) profileByPhone[key] = self.profileRowToUser(row);
+          });
+
+          var onPresy = [];
+          var invite = [];
+          var seenProfileIds = {};
+
+          picked.forEach(function (c) {
+            var displayName = (c.name && c.name[0]) || 'Contatto';
+            var normalizedPhones = (c.tel || []).map(function (t) { return self.normalizePhone(t); }).filter(Boolean);
+            var matchedProfile = null;
+            normalizedPhones.forEach(function (np) {
+              if (profileByPhone[np] && !matchedProfile) matchedProfile = profileByPhone[np];
+            });
+            if (matchedProfile) {
+              if (matchedProfile.id === self.currentUser.id) return;
+              if (seenProfileIds[matchedProfile.id]) return;
+              seenProfileIds[matchedProfile.id] = true;
+              onPresy.push({ displayName: displayName, profile: self.mergeUserIntoList(matchedProfile) });
+            } else if (normalizedPhones.length) {
+              invite.push({ displayName: displayName, phone: normalizedPhones[0] });
+            }
+          });
+
+          this.contactsSync.onPresy = onPresy;
+          this.contactsSync.invite = invite;
+          this.contactsSync.status = onPresy.length
+            ? onPresy.length + ' amici trovati dalla rubrica del browser'
+            : 'Nessuno dei contatti selezionati è su Presy.';
+          this.contactsSync.loading = false;
+          this.renderContactsSync();
+          this.showToast('✨ Rubrica browser sincronizzata');
+          return true;
+        } catch (err) {
+          console.warn('[Presy] Contact Picker API:', err);
+          this.contactsSync.loading = false;
+          return false;
+        }
+      }
+
+      getInviteLink() {
+        return window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
+      }
+
+      getInviteMessage(contactName) {
+        return 'Ehi ' + contactName + '! Unisciti a me su Presy 🚀 ' + this.getInviteLink();
+      }
+
+      inviteViaWhatsApp(phone, contactName) {
+        var digits = String(phone).replace(/\D/g, '');
+        if (digits.length === 10) digits = '39' + digits;
+        var text = encodeURIComponent(this.getInviteMessage(contactName));
+        window.open('https://wa.me/' + digits + '?text=' + text, '_blank', 'noopener,noreferrer');
+      }
+
+      inviteViaSms(phone, contactName) {
+        var text = encodeURIComponent(this.getInviteMessage(contactName));
+        var tel = String(phone).replace(/[^\d+]/g, '');
+        window.open('sms:' + tel + '?body=' + text, '_self');
+      }
+
+      renderContactsSync() {
+        var container = document.getElementById('contactsSyncContainer');
+        if (!container) return;
+
+        if (this.contactsSync.loading) {
+          container.innerHTML = '<p class="contacts-sync-status">' + (this.contactsSync.status || 'Sincronizzazione rubrica...') + '</p>';
+          return;
+        }
+
         var html = '';
 
-        if (this.contactsRubrica.matched.length) {
-          html += '<div class="rubrica-section-title">Amici su Presy</div>';
-          this.contactsRubrica.matched.forEach(function (item) {
-            var u = item.profile;
+        if (this.contactsSync.onPresy.length) {
+          html += '<div class="contacts-section-title">Amici su Presy</div>';
+          this.contactsSync.onPresy.forEach(function (entry) {
+            var u = entry.profile;
+            var label = entry.profile.displayName || entry.profile.username;
             var av = u.avatar
               ? '<img src="' + u.avatar + '" alt="">'
-              : (u.displayName || u.username)[0].toUpperCase();
-            var qid = self.qid(u.id);
+              : label[0].toUpperCase();
             html += '<div class="user-row">' +
-              '<div class="user-info" onclick="app.openUserProfile(' + qid + ')">' +
+              '<div class="user-info" onclick="app.openUserProfile(\'' + u.id + '\')">' +
                 '<div class="avatar">' + av + '</div>' +
-                '<div><div style="font-weight:700;">@' + u.username + '</div>' +
-                '<div style="font-size:12px;color:var(--text-muted);">' + item.contactName + '</div></div>' +
+                '<div><div style="font-weight:700;">' + label + '</div>' +
+                '<div style="font-size:12px;color:var(--text-muted);">@' + u.username + ' · in rubrica</div></div>' +
               '</div>' +
               '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-                '<button class="btn btn--sm" onclick="event.stopPropagation();app.toggleFollow(' + qid + ')">' +
-                  (u.followedByMe ? 'Seguito' : 'Aggiungi') +
-                '</button>' +
+                '<button class="btn btn--sm" onclick="event.stopPropagation();app.toggleFollow(\'' + u.id + '\')">' +
+                  (u.followedByMe ? 'Seguito' : 'Aggiungi') + '</button>' +
               '</div></div>';
           });
         }
 
-        if (this.contactsRubrica.invite.length) {
-          html += '<div class="rubrica-section-title">Invita su Presy</div>';
-          this.contactsRubrica.invite.forEach(function (item, idx) {
-            var masked = item.rawPhones[0] ? item.rawPhones[0].replace(/\d(?=\d{4})/g, '•') : '';
-            html += '<div class="rubrica-invite-row">' +
-              '<div class="rubrica-invite-row__meta">' +
-                '<div class="rubrica-invite-row__name">' + item.name + '</div>' +
-                '<div class="rubrica-invite-row__phone">' + masked + '</div>' +
+        if (this.contactsSync.invite.length) {
+          html += '<div class="contacts-section-title">Invita su Presy</div>';
+          this.contactsSync.invite.forEach(function (entry, idx) {
+            html += '<div class="user-row contacts-invite-row">' +
+              '<div class="user-info">' +
+                '<div class="avatar">' + (entry.displayName[0] || '?').toUpperCase() + '</div>' +
+                '<div><div style="font-weight:700;">' + entry.displayName + '</div>' +
+                '<div style="font-size:12px;color:var(--text-muted);">Non ha ancora Presy</div></div>' +
               '</div>' +
-              '<button class="btn btn--sm btn--secondary" onclick="app.inviteContactToPresy(' + idx + ')">Invita</button>' +
-            '</div>';
+              '<div class="contacts-invite-actions">' +
+                '<button class="btn btn--sm btn--green" onclick="app.inviteViaWhatsApp(app.contactsSync.invite[' + idx + '].phone, app.contactsSync.invite[' + idx + '].displayName)">WhatsApp</button>' +
+                '<button class="btn btn--sm btn--secondary" onclick="app.inviteViaSms(app.contactsSync.invite[' + idx + '].phone, app.contactsSync.invite[' + idx + '].displayName)">SMS</button>' +
+              '</div></div>';
           });
         }
 
-        if (!html) {
-          html = '<p style="font-size:13px;color:var(--text-muted);text-align:center;padding:16px;">Nessun contatto trovato in rubrica.</p>';
+        if (!html && this.contactsSync.status) {
+          html = '<p class="contacts-sync-status">' + this.contactsSync.status + '</p>';
+        } else if (!html && this.isNativeCapacitor()) {
+          html = '<p class="contacts-sync-status">Tocca "Sincronizza Rubrica" per trovare amici già su Presy.</p>';
         }
 
-        panel.innerHTML = html;
+        container.innerHTML = html;
       }
 
-      inviteContactToPresy(index) {
-        var contact = this.contactsRubrica.invite[index];
-        if (!contact) return;
-        var link = window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
-        var text = 'Ehi ' + contact.name + '! Unisciti a Presy — l\'app per organizzare pre-serate con gli Amici 🚀 ' + link;
+      async syncContacts() {
+        var self = this;
+        if (this.contactsSync.loading) return;
 
-        if (navigator.share) {
-          navigator.share({ title: 'Presy', text: text, url: link }).catch(function () {});
+        if (!this.currentUser) {
+          return this.openAuthModal(function () { app.syncContacts(); });
+        }
+
+        if (this.isBrowserMode()) {
+          var picked = await this.tryBrowserContactPicker();
+          if (!picked) this.showContactsBrowserHelp();
           return;
         }
 
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function () {
-            app.showToast('Link invito copiato per ' + contact.name + ' 📲');
+        var ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
+        if (!ContactsPlugin) return;
+
+        if (!this.supabaseReady) {
+          this.showToast('Supabase non configurato.');
+          return;
+        }
+
+        this.contactsSync.loading = true;
+        this.contactsSync.status = 'Sincronizzazione rubrica...';
+        this.renderContactsSync();
+
+        try {
+          var permission = await ContactsPlugin.checkPermissions();
+          if (permission.contacts !== 'granted' && permission.contacts !== 'limited') {
+            permission = await ContactsPlugin.requestPermissions();
+          }
+          if (permission.contacts !== 'granted' && permission.contacts !== 'limited') {
+            throw new Error('Permesso rubrica negato. Abilitalo dalle Impostazioni del telefono.');
+          }
+
+          this.contactsSync.status = 'Lettura contatti in corso...';
+          this.renderContactsSync();
+
+          var result = await ContactsPlugin.getContacts({
+            projection: { name: true, phones: true }
           });
-        } else {
-          prompt('Copia e invia a ' + contact.name + ':', text);
+          var contacts = (result && result.contacts) ? result.contacts : [];
+
+          var phoneSet = {};
+          contacts.forEach(function (c) {
+            (c.phones || []).forEach(function (ph) {
+              var cleaned = self.normalizePhone(ph.number);
+              if (cleaned) phoneSet[cleaned] = true;
+            });
+          });
+
+          var arrayDeiNumeriPulitiDellaRubrica = Object.keys(phoneSet);
+          if (!arrayDeiNumeriPulitiDellaRubrica.length) {
+            this.contactsSync.onPresy = [];
+            this.contactsSync.invite = [];
+            this.contactsSync.status = 'Nessun numero di telefono trovato in rubrica.';
+            return;
+          }
+
+          this.contactsSync.status = 'Ricerca amici su Presy...';
+          this.renderContactsSync();
+
+          var amiciTrovati = [];
+          var chunkSize = 80;
+          for (var i = 0; i < arrayDeiNumeriPulitiDellaRubrica.length; i += chunkSize) {
+            var chunk = arrayDeiNumeriPulitiDellaRubrica.slice(i, i + chunkSize);
+            var queryResult = await this.supabase
+              .from('profiles')
+              .select('id, username, display_name, avatar_url, phone_number')
+              .in('phone_number', chunk);
+            if (queryResult.error) throw queryResult.error;
+            amiciTrovati = amiciTrovati.concat(queryResult.data || []);
+          }
+
+          var profileByPhone = {};
+          amiciTrovati.forEach(function (row) {
+            var key = self.normalizePhone(row.phone_number);
+            if (key) profileByPhone[key] = self.profileRowToUser(row);
+          });
+
+          var onPresy = [];
+          var invite = [];
+          var seenProfileIds = {};
+
+          contacts.forEach(function (c) {
+            var displayName = (c.name && c.name.display) ||
+              [(c.name && c.name.given), (c.name && c.name.family)].filter(Boolean).join(' ').trim() ||
+              'Contatto';
+            var normalizedPhones = (c.phones || [])
+              .map(function (ph) { return self.normalizePhone(ph.number); })
+              .filter(Boolean);
+
+            var matchedProfile = null;
+            normalizedPhones.forEach(function (np) {
+              if (profileByPhone[np] && !matchedProfile) matchedProfile = profileByPhone[np];
+            });
+
+            if (matchedProfile) {
+              if (matchedProfile.id === self.currentUser.id) return;
+              if (seenProfileIds[matchedProfile.id]) return;
+              seenProfileIds[matchedProfile.id] = true;
+              var user = self.mergeUserIntoList(matchedProfile);
+              onPresy.push({ displayName: displayName, profile: user, contactId: c.contactId });
+            } else {
+              var firstPhone = normalizedPhones[0];
+              if (firstPhone) {
+                invite.push({
+                  displayName: displayName,
+                  phone: firstPhone,
+                  contactId: c.contactId
+                });
+              }
+            }
+          });
+
+          this.contactsSync.onPresy = onPresy;
+          this.contactsSync.invite = invite;
+          this.contactsSync.status = onPresy.length || invite.length
+            ? onPresy.length + ' su Presy · ' + invite.length + ' da invitare'
+            : 'Nessun contatto in rubrica corrisponde a un account Presy.';
+
+          if (onPresy.length) {
+            this.showToast('✨ ' + onPresy.length + ' amici trovati su Presy!');
+          }
+        } catch (err) {
+          console.error('[Presy Contacts]', err);
+          this.contactsSync.onPresy = [];
+          this.contactsSync.invite = [];
+          this.contactsSync.status = err.message || 'Errore sincronizzazione rubrica.';
+          this.showToast(this.contactsSync.status);
+        } finally {
+          this.contactsSync.loading = false;
+          this.renderContactsSync();
+          this.renderSocial();
         }
       }
 
       copyInviteLink() {
         var link = window.location.origin + window.location.pathname + '?ref=' + (this.currentUser ? this.currentUser.username : 'guest');
         navigator.clipboard.writeText(link).then(function () {
-          app.showToast('🔗 Link copiato! Invia ai tuoi Amici.');
+          app.showToast('🔗 Link copiato! Invia ai tuoi amici.');
         }).catch(function () {
           prompt('Copia questo link:', link);
         });
       }
 
       handleUserSearch() {
+        if (this.isBrowserMode()) return;
         var val = document.getElementById('searchUserField').value.trim();
         if (val.length >= 2) {
           if (!this.searchHistory.includes(val.toLowerCase())) {
@@ -2562,9 +2864,44 @@
       renderSocial() {
         var container = document.getElementById('socialUsersContainer');
         container.innerHTML = '';
+        var self = this;
+
+        if (this.isBrowserMode()) {
+          if (!this.browserSearchResults.length) {
+            var q = this.sanitizeSearchQuery(document.getElementById('friendsSearchField').value);
+            if (q.length >= 2) {
+              container.innerHTML = '<p class="contacts-sync-status">Nessun utente trovato per "' + q + '".</p>';
+            } else {
+              container.innerHTML = '<p class="contacts-sync-status">Usa la barra di ricerca per trovare amici su Presy.</p>';
+            }
+            return;
+          }
+
+          this.browserSearchResults.forEach(function (u) {
+            var label = u.displayName || u.username;
+            var avContent = u.avatar
+              ? '<img src="' + u.avatar + '" alt="">'
+              : label[0].toUpperCase();
+            var row = document.createElement('div');
+            row.className = 'user-row';
+            row.innerHTML =
+              '<div class="user-info" onclick="app.openUserProfile(\'' + u.id + '\')">' +
+                '<div class="avatar">' + avContent + '</div>' +
+                '<div><div style="font-weight:700;">' + label + '</div>' +
+                '<div style="font-size:12px;color:var(--text-muted);">@' + u.username +
+                  (u.phoneNumber ? ' · ' + u.phoneNumber : '') + '</div></div>' +
+              '</div>' +
+              '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+                '<button class="btn btn--sm" onclick="event.stopPropagation();app.toggleFollow(\'' + u.id + '\')">' +
+                  (u.followedByMe ? 'Seguito' : 'Aggiungi agli Amici') + '</button>' +
+              '</div>';
+            container.appendChild(row);
+          });
+          return;
+        }
+
         var searchVal = document.getElementById('searchUserField').value.toLowerCase().trim();
         var filtered = this.users.filter(function (u) { return u.username.toLowerCase().includes(searchVal); });
-        var self = this;
 
         filtered.forEach(function (u) {
           var row = document.createElement('div');
@@ -2588,7 +2925,7 @@
       }
 
       openUserProfile(userId) {
-        var u = this.users.find(function (x) { return x.id === userId; });
+        var u = this.users.find(function (x) { return String(x.id) === String(userId); });
         if (!u) return;
         var av = u.avatar
           ? '<img src="' + u.avatar + '" alt="">'
@@ -2609,17 +2946,15 @@
 
       toggleFollow(userId) {
         if (!this.currentUser) return this.openAuthModal(function () { app.toggleFollow(userId); });
-        var user = this.users.find(function (u) { return u.id === userId; });
+        var user = this.users.find(function (u) { return String(u.id) === String(userId); });
+        if (!user) return;
         user.followedByMe = !user.followedByMe;
         user.followers += user.followedByMe ? 1 : -1;
-        this.contactsRubrica.matched.forEach(function (item) {
-          if (item.profile.id === userId) item.profile.followedByMe = user.followedByMe;
-        });
         if (user.followedByMe && this.isMutualFollow(userId)) {
           this.acceptDMRequest('dm_' + userId);
         }
         this.renderSocial();
-        this.renderContactsRubrica();
+        this.renderContactsSync();
       }
 
       /* ─── Chat ─── */

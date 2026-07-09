@@ -18,7 +18,7 @@
       tabsAria: 'Schermate Presy',
 
       createTitle: 'Crea un Presy',
-      createSubtitle: 'Imposta il vibe. Invita la crew. Dividi equo.',
+      createSubtitle: 'Imposta il vibe. Invita la amici. Dividi equo.',
       vibeLabel: 'Qual è il vibe stasera?',
       vibePlaceholder: 'Warmup del Sabato 🚀',
       participants: 'Partecipanti',
@@ -84,7 +84,7 @@
       tabsAria: 'Presy screens',
 
       createTitle: 'Create a Presy',
-      createSubtitle: 'Set the vibe. Invite the crew. Split it fair.',
+      createSubtitle: 'Set the vibe. Invite the amici. Split it fair.',
       vibeLabel: "What's the vibe tonight?",
       vibePlaceholder: 'Saturday Warmup 🚀',
       participants: 'Participants',

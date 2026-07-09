@@ -109,7 +109,7 @@ CREATE TABLE profiles (
 );
 
 CREATE INDEX idx_profiles_username ON profiles (username);
-CREATE INDEX idx_profiles_phone ON profiles (phone_number) WHERE phone_number IS NOT NULL;
+CREATE INDEX idx_profiles_phone ON profiles (phone_number);
 
 CREATE TRIGGER trg_profiles_updated_at
   BEFORE UPDATE ON profiles
