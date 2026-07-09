@@ -347,6 +347,21 @@
       box-sizing: border-box;
     }
 
+    input[type="date"],
+    input[type="time"],
+    .datetime-row input {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+      min-width: 0 !important;
+    }
+
+    #view-create .input-group,
+    #view-create .field-stack {
+      min-width: 0;
+      overflow: hidden;
+    }
+
     .contacts-section-title {
       font-size: 13px;
       font-weight: 700;
@@ -531,7 +546,23 @@
     .msg__media img, .msg__media video { width: 100%; display: block; border-radius: 10px; }
 
     .chat-input-bar { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
-    .chat-input-bar input { flex: 1; }
+    .chat-input-bar input { flex: 1; min-width: 0; }
+
+    .chat-empty-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 180px;
+      padding: 28px 20px;
+      margin: 12px 0 4px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.18);
+      border: 1px dashed rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
     .attach-btn {
       width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px;
       background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border);
@@ -794,7 +825,7 @@
           <p class="subtitle" id="socialSubtitle">Trova, segui e invita i tuoi amici.</p>
           <div id="browserFriendsSearch" class="browser-friends-search" style="display:none;">
             <div class="friends-search-bar">
-              <input type="text" id="friendsSearchField" placeholder="Cerca amici per numero o @username..." oninput="app.handleFriendsSearchInput()" onkeydown="app.handleFriendsSearchKeydown(event)">
+              <input type="text" id="friendsSearchField" placeholder="Cerca per numero o @username..." oninput="app.handleFriendsSearchInput()" onkeydown="app.handleFriendsSearchKeydown(event)">
               <button type="button" class="btn btn--sm btn--secondary" onclick="app.runFriendsSearchNow(true)">Cerca</button>
             </div>
             <p class="friends-search-hint">Cerca utenti registrati su Presy da browser — digita almeno 2 caratteri.</p>
@@ -829,8 +860,11 @@
           <div id="chatMainPanel">
             <div id="activeChatSelector" class="room-selector"></div>
             <div id="roomShoppingPanel"></div>
+            <div id="chatEmptyPlaceholder" class="chat-empty-placeholder">
+              Seleziona un amico per iniziare a chattare 💬
+            </div>
             <div class="chat-container" id="chatMessagesBox"></div>
-            <div class="chat-input-bar">
+            <div class="chat-input-bar" id="chatInputBar">
               <label class="attach-btn" for="chatMediaInput">📎</label>
               <input type="file" id="chatMediaInput" accept="image/*,video/*" hidden onchange="app.handleMediaAttach(event)">
               <input type="text" id="chatInputField" placeholder="Scrivi un messaggio..." onkeydown="if(event.key==='Enter')app.sendMessage()">
@@ -850,10 +884,6 @@
             <div class="avatar" id="profAvatar">?</div>
             <label class="photo-edit" for="profilePhotoInput">📷</label>
             <input type="file" id="profilePhotoInput" accept="image/*" hidden onchange="app.handleProfilePhoto(event)">
-          </div>
-          <div class="input-group" style="margin:12px 0 0;text-align:left;">
-            <label for="profDisplayName">Nome visualizzato</label>
-            <input type="text" id="profDisplayName" class="display-name-input" placeholder="Il tuo nome pubblico" oninput="app.saveDisplayName()">
           </div>
           <h2 id="profUsername" class="username-display">Guest Mode</h2>
           <p class="subtitle" id="profMail" style="margin-bottom:0;">Nessun account collegato</p>
@@ -907,6 +937,10 @@
         <div class="input-group" id="authUsernameGroup">
           <label>Username</label>
           <input type="text" id="authUsername" placeholder="es. Mario_Rossi">
+        </div>
+        <div class="input-group" id="authPhoneGroup" style="display:none;">
+          <label>Numero di telefono</label>
+          <input type="tel" id="authPhone" class="phone-input" placeholder="Es. 3331234567" inputmode="tel" autocomplete="tel">
         </div>
         <div class="input-group">
           <label>Email</label>
@@ -995,6 +1029,7 @@
       <h2>⚙️ Impostazioni</h2>
       <div class="input-group"><label>Email</label><input type="email" id="settingsEmail"></div>
       <div class="input-group"><label>Username</label><input type="text" id="settingsUsername" class="username-input"></div>
+      <div class="input-group"><label>Numero di telefono</label><input type="tel" id="settingsPhone" class="phone-input" placeholder="Es. 3331234567" inputmode="tel" autocomplete="tel"></div>
       <div class="input-group"><label>Nuova Password</label><input type="password" id="settingsPassword" placeholder="Lascia vuoto per non cambiare"></div>
       <button class="btn" onclick="app.saveSettings()">Salva Modifiche</button>
       <button class="btn btn--secondary" onclick="app.closeModal('settingsModal')">Chiudi</button>
@@ -1204,12 +1239,13 @@
           email: email,
           displayName: row.display_name || row.username,
           avatar: row.avatar_url || null,
+          phoneNumber: row.phone_number || null,
           participated: row.participated || 0,
           supabaseId: row.id
         };
       }
 
-      async ensureProfileExists(session, usernameOverride) {
+      async ensureProfileExists(session, usernameOverride, phoneOverride) {
         var user = session.user;
         var meta = user.user_metadata || {};
         var username = usernameOverride || meta.username || meta.display_name || user.email.split('@')[0];
@@ -1221,6 +1257,7 @@
           avatar_url: meta.avatar_url || null,
           participated: 0
         };
+        if (phoneOverride) payload.phone_number = phoneOverride;
         var result = await this.supabase.from('profiles').upsert(payload, { onConflict: 'id' }).select().single();
         if (result.error) {
           console.error('[Presy] ensureProfileExists:', result.error);
@@ -2015,6 +2052,7 @@
         document.getElementById('authTabLogin').classList.toggle('active', isLogin);
         document.getElementById('authTabRegister').classList.toggle('active', !isLogin);
         document.getElementById('authUsernameGroup').style.display = isLogin ? 'none' : 'flex';
+        document.getElementById('authPhoneGroup').style.display = isLogin ? 'none' : 'flex';
         document.getElementById('authComplianceBlock').style.display = isLogin ? 'none' : 'flex';
         document.getElementById('authModalTitle').textContent = isLogin ? 'Accedi a Presy' : 'Crea il tuo account';
         document.getElementById('authModalSubtitle').textContent = isLogin
@@ -2100,6 +2138,8 @@
         var user = document.getElementById('authUsername').value.trim();
         var email = document.getElementById('authEmail').value.trim();
         var pass = document.getElementById('authPassword').value;
+        var phoneRaw = document.getElementById('authPhone').value.trim();
+        var phoneNumber = phoneRaw ? this.normalizePhone(phoneRaw) : '';
 
         if (!email || !pass) return alert('Inserisci email e password.');
         if (this.authMode === 'register' && !user) return alert('Inserisci uno username.');
@@ -2132,7 +2172,7 @@
             if (result.error) throw result.error;
 
             if (this.authMode === 'register' && result.data && result.data.user) {
-              await this.ensureProfileExists({ user: result.data.user }, user);
+              await this.ensureProfileExists({ user: result.data.user }, user, phoneNumber || null);
             }
 
             if (result.data && result.data.session) {
@@ -2161,7 +2201,8 @@
         }
         this.currentUser = {
           id: Date.now(), username: user || email.split('@')[0], email: email, password: pass,
-          displayName: user || email.split('@')[0], avatar: null, followers: 3, participated: 0
+          displayName: user || email.split('@')[0], avatar: null, followers: 3, participated: 0,
+          phoneNumber: phoneNumber || null
         };
         this.persistMockSession();
         this.closeAuthModal();
@@ -2444,7 +2485,7 @@
         if (history) history.style.display = isBrowser ? 'none' : 'block';
         if (subtitle) {
           subtitle.textContent = isBrowser
-            ? 'Cerca amici per username o numero, oppure sincronizza la rubrica dall\'app.'
+            ? 'Cerca per numero o @username, oppure sincronizza la rubrica dall\'app.'
             : 'Trova, segui e invita i tuoi amici.';
         }
       }
@@ -2990,6 +3031,31 @@
       }
 
       /* ─── Chat ─── */
+      hasActiveChat() {
+        return !!(this.currentChatRoom &&
+          (this.currentChatRoom.indexOf('party_') === 0 || this.currentChatRoom.indexOf('dm_') === 0));
+      }
+
+      updateChatPanelVisibility() {
+        var active = this.hasActiveChat() && this.chatSection === 'chat';
+        var placeholder = document.getElementById('chatEmptyPlaceholder');
+        var messagesBox = document.getElementById('chatMessagesBox');
+        var inputBar = document.getElementById('chatInputBar');
+        var shopping = document.getElementById('roomShoppingPanel');
+
+        if (placeholder) placeholder.style.display = active ? 'none' : 'flex';
+        if (messagesBox) messagesBox.style.display = active ? 'flex' : 'none';
+        if (inputBar) inputBar.style.display = active ? 'flex' : 'none';
+        if (shopping) {
+          shopping.style.display = (active && this.currentChatRoom.indexOf('party_') === 0) ? 'block' : 'none';
+        }
+
+        if (!active && this.chatSection === 'chat') {
+          document.getElementById('chatRoomTitle').textContent = 'Chat';
+          document.getElementById('chatRoomSubtitle').textContent = 'Seleziona un amico o un pre-serata dalla lista';
+        }
+      }
+
       switchChatSection(section) {
         this.chatSection = section;
         document.getElementById('chatTabMain').classList.toggle('active', section === 'chat');
@@ -3139,7 +3205,9 @@
       async renderChat() {
         if (this.supabaseReady) {
           await this.fetchPartiesFromSupabase();
-          await this.fetchMessagesFromSupabase(this.currentChatRoom);
+          if (this.hasActiveChat()) {
+            await this.fetchMessagesFromSupabase(this.currentChatRoom);
+          }
         }
 
         var badge = document.getElementById('requestsBadge');
@@ -3154,6 +3222,8 @@
           this.renderRequestsPanel();
           return;
         }
+
+        this.updateChatPanelVisibility();
 
         var selector = document.getElementById('activeChatSelector');
         selector.innerHTML = '';
@@ -3459,7 +3529,10 @@
 
       renderMessages() {
         var box = document.getElementById('chatMessagesBox');
+        if (!box) return;
         box.innerHTML = '';
+        if (!this.hasActiveChat()) return;
+
         var msgs = this.messages.filter(function (m) { return m.roomId === app.currentChatRoom; });
 
         if (!msgs.length) {
@@ -3497,6 +3570,7 @@
       }
 
       handleMediaAttach(e) {
+        if (!this.hasActiveChat()) return;
         var file = e.target.files[0];
         if (!file) return;
         var url = URL.createObjectURL(file);
@@ -3507,6 +3581,7 @@
 
       sendMessage() {
         if (!this.currentUser) return this.openAuthModal(function () { app.sendMessage(); });
+        if (!this.hasActiveChat()) return;
         var input = document.getElementById('chatInputField');
         var txt = input.value.trim();
         if (!txt && !this.pendingMedia) return;
@@ -3567,6 +3642,7 @@
         var mailEl = document.getElementById('profMail');
         var settingsEmail = document.getElementById('settingsEmail');
         var settingsUsername = document.getElementById('settingsUsername');
+        var settingsPhone = document.getElementById('settingsPhone');
 
         if (!u) {
           if (displayInput) displayInput.value = '';
@@ -3574,6 +3650,7 @@
           if (mailEl) mailEl.textContent = 'Effettua il login per tracciare metriche';
           if (settingsEmail) settingsEmail.value = '';
           if (settingsUsername) settingsUsername.value = '';
+          if (settingsPhone) settingsPhone.value = '';
           return;
         }
 
@@ -3584,6 +3661,7 @@
         if (mailEl) mailEl.textContent = u?.email || '';
         if (settingsEmail) settingsEmail.value = u?.email || '';
         if (settingsUsername) settingsUsername.value = u?.username || '';
+        if (settingsPhone) settingsPhone.value = u?.phone_number || u?.phoneNumber || '';
       }
 
       async renderProfile() {
@@ -3731,6 +3809,8 @@
         if (!this.currentUser) return;
         var email = document.getElementById('settingsEmail').value.trim();
         var username = document.getElementById('settingsUsername').value.trim();
+        var phoneRaw = document.getElementById('settingsPhone').value.trim();
+        var phoneNumber = phoneRaw ? this.normalizePhone(phoneRaw) : null;
         var pass = document.getElementById('settingsPassword').value;
 
         if (!username) return alert('Lo username non può essere vuoto.');
@@ -3748,7 +3828,8 @@
 
             var profileResult = await this.persistProfileToDb({
               username: username,
-              email: email || this.currentUser.email
+              email: email || this.currentUser.email,
+              phone_number: phoneNumber
             });
             if (!profileResult.ok) throw profileResult.error || new Error('Salvataggio profilo fallito');
 
@@ -3769,6 +3850,7 @@
 
         this.currentUser.email = email;
         this.currentUser.username = username;
+        this.currentUser.phoneNumber = phoneNumber;
         if (pass) this.currentUser.password = pass;
         this.persistMockSession();
         this.closeModal('settingsModal');
